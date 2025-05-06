@@ -11,11 +11,29 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { TextInput, Button, Card, Divider } from 'react-native-paper';
+import { TextInput, Button, Card, Divider, Badge } from 'react-native-paper';
 import { Picker } from '@react-native-picker/picker';
 import { StatusBar } from 'expo-status-bar';
+import NetInfo from '@react-native-community/netinfo';
+
 // Importamos el servicio de API
 import { registrarEquipo } from '../services/apiService';
+
+// Importamos el servicio de almacenamiento local
+import { 
+  guardarRegistroPendiente, 
+  obtenerRegistrosPendientes, 
+  contarRegistrosPendientes 
+} from '../services/storageService';
+
+// Importamos el servicio de sincronización
+import { 
+  sincronizarRegistrosPendientes, 
+  sincronizarAlReconectar 
+} from '../services/syncService';
+
+// Importamos los estilos desde el archivo separado
+import styles from '../styles/styles';
 
 // Importación condicional para DateTimePicker
 let DateTimePicker;
@@ -44,7 +62,7 @@ const RegistroBienesScreen = ({ navigation }) => {
   
   const [responsable, setResponsable] = useState('');
   const [ubicacion, setUbicacion] = useState('');
-  const [areaAsignada, setAreaAsignada] = useState('');
+  const [areaAsignada, setAreaAsignada] = useState('Sin asignar'); // Valor inicial no vacío
   
   const [estatus, setEstatus] = useState('');
   const [fechaCaptura, setFechaCaptura] = useState(new Date());
@@ -57,17 +75,68 @@ const RegistroBienesScreen = ({ navigation }) => {
   
   // Lista de responsables (debería venir de una API/base de datos)
   const [responsables, setResponsables] = useState([]);
+  
+  // Estado para rastrear la conectividad a internet
+  const [isOnline, setIsOnline] = useState(true);
+  
+  // Estado para contar registros pendientes
+  const [pendingCount, setPendingCount] = useState(0);
+  
+  // Estado para mostrar el proceso de sincronización
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncProgress, setSyncProgress] = useState(0);
 
-  // Cargar los responsables al montar el componente
+  // Cargar los responsables al montar el componente y configurar la detección de red
   useEffect(() => {
-    // Aquí deberías hacer una llamada a tu API para obtener los responsables
-    // Por ahora, usamos datos de ejemplo
+    // Configurar el listener de red
+    const unsubscribeNetInfo = NetInfo.addEventListener(state => {
+      setIsOnline(state.isConnected && state.isInternetReachable);
+    });
+    
+    // Configurar sincronización al reconectar
+    const unsubscribeSyncOnReconnect = sincronizarAlReconectar(handleSyncComplete);
+    
+    // Verificar registros pendientes al iniciar
+    actualizarContadorPendientes();
+    
+    // Cargar los responsables (deberías cargarlos desde tu API)
     setResponsables([
       { NOMBRE: 'Juan Pérez', AREA: 'Sistemas' },
       { NOMBRE: 'María López', AREA: 'Contabilidad' },
       { NOMBRE: 'Carlos Rodríguez', AREA: 'Recursos Humanos' },
     ]);
+    
+    // Cleanup al desmontar
+    return () => {
+      unsubscribeNetInfo();
+      unsubscribeSyncOnReconnect();
+    };
   }, []);
+  
+  // Actualizar el contador de registros pendientes
+  const actualizarContadorPendientes = async () => {
+    const count = await contarRegistrosPendientes();
+    setPendingCount(count);
+  };
+  
+  // Manejar la finalización de la sincronización
+  const handleSyncComplete = (resultado) => {
+    setIsSyncing(false);
+    setSyncProgress(0);
+    
+    // Actualizar contador de pendientes
+    actualizarContadorPendientes();
+    
+    // Mostrar resultado de la sincronización
+    if (resultado.syncedCount > 0) {
+      Alert.alert(
+        "Sincronización completada",
+        `Se sincronizaron ${resultado.syncedCount} registros con el servidor.` +
+        (resultado.errors.length > 0 ? `\nErrores: ${resultado.errors.length}` : ""),
+        [{ text: "OK" }]
+      );
+    }
+  };
 
   // Manejar el cambio de fecha
   const onDateChange = (event, selectedDate) => {
@@ -79,10 +148,8 @@ const RegistroBienesScreen = ({ navigation }) => {
   // Manejar el cambio de responsable y actualizar el área
   const handleResponsableChange = (itemValue, itemIndex) => {
     setResponsable(itemValue);
-    if (itemIndex > 0) { // Para evitar el placeholder
-      const selectedResponsable = responsables[itemIndex - 1];
-      setAreaAsignada(selectedResponsable.AREA);
-    }
+    // Establecemos área asignada como cadena vacía
+    setAreaAsignada('');
   };
 
   // Validar el formulario
@@ -145,6 +212,37 @@ const RegistroBienesScreen = ({ navigation }) => {
     setErrors({});
   };
 
+  // Guardar localmente
+  const guardarEnLocal = async (datos) => {
+    try {
+      const guardado = await guardarRegistroPendiente(datos);
+      if (guardado) {
+        Alert.alert(
+          "Guardado localmente",
+          "El registro se ha guardado en tu dispositivo y se sincronizará cuando haya conexión a internet.",
+          [{ 
+            text: "OK", 
+            onPress: () => {
+              resetForm();
+              actualizarContadorPendientes();
+            } 
+          }]
+        );
+        return true;
+      } else {
+        throw new Error("No se pudo guardar localmente");
+      }
+    } catch (error) {
+      console.error("Error al guardar localmente:", error);
+      Alert.alert(
+        "Error",
+        "No se pudo guardar el registro localmente. Por favor intente nuevamente.",
+        [{ text: "OK" }]
+      );
+      return false;
+    }
+  };
+
   // Manejar el envío del formulario
   const handleSubmit = async () => {
     // Validar el formulario antes de enviar
@@ -169,53 +267,113 @@ const RegistroBienesScreen = ({ navigation }) => {
       fecha_entrega: fechaEntrega.toISOString().split('T')[0],
       responsable,
       ubicacion,
-      area_asignada: areaAsignada,
+      area_asignada: areaAsignada || 'Sin asignar', // Garantizar que nunca sea NULL
       estatus,
       fecha_captura: fechaCaptura.toISOString().split('T')[0],
     };
     
     try {
-      // Usar el servicio API para registrar el equipo
-      const resultado = await registrarEquipo(formData);
-      
-      if (resultado.success) {
-        Alert.alert(
-          "Éxito",
-          "El equipo ha sido registrado correctamente" + 
-            (resultado.method ? ` (Método: ${resultado.method})` : ""),
-          [
-            { 
-              text: "OK", 
-              onPress: () => {
-                // Resetear el formulario o navegar a otra pantalla
-                resetForm();
-                // Opcional: navegar a la lista de inventario
-                // navigation.navigate('InventarioBienes');
-              } 
-            }
-          ]
-        );
-      } else {
-        // Mostrar mensaje de error de la API
-        Alert.alert(
-          "Error",
-          resultado.error || "Hubo un error al guardar el registro",
-          [{ text: "OK" }]
-        );
+      // Si estamos en línea, enviamos directamente al servidor
+      if (isOnline) {
+        // Usar el servicio API para registrar el equipo
+        const resultado = await registrarEquipo(formData);
         
-        if (resultado.details) {
-          console.log("Detalles del error:", resultado.details);
+        if (resultado.success) {
+          Alert.alert(
+            "Éxito",
+            "El equipo ha sido registrado correctamente" + 
+              (resultado.method ? ` (Método: ${resultado.method})` : ""),
+            [
+              { 
+                text: "OK", 
+                onPress: () => {
+                  // Resetear el formulario o navegar a otra pantalla
+                  resetForm();
+                  // Opcional: navegar a la lista de inventario
+                  // navigation.navigate('InventarioBienes');
+                } 
+              }
+            ]
+          );
+        } else {
+          // Si falla la API pero estamos en línea, intentamos guardar localmente
+          if (resultado.error && resultado.error.includes("servidor no disponible")) {
+            await guardarEnLocal(formData);
+          } else {
+            // Mostrar mensaje de error de la API
+            Alert.alert(
+              "Error",
+              resultado.error || "Hubo un error al guardar el registro",
+              [{ text: "OK" }]
+            );
+            
+            if (resultado.details) {
+              console.log("Detalles del error:", resultado.details);
+            }
+          }
         }
+      } else {
+        // Si no estamos en línea, guardamos localmente
+        await guardarEnLocal(formData);
       }
     } catch (error) {
       console.error("Error al registrar equipo:", error);
-      Alert.alert(
-        "Error inesperado",
-        "Ocurrió un error al procesar la solicitud. Por favor intente nuevamente.",
-        [{ text: "OK" }]
-      );
+      
+      // Si hay un error de red pero los datos son válidos, intentamos guardar localmente
+      if (!isOnline) {
+        await guardarEnLocal(formData);
+      } else {
+        Alert.alert(
+          "Error inesperado",
+          "Ocurrió un error al procesar la solicitud. Por favor intente nuevamente.",
+          [{ text: "OK" }]
+        );
+      }
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Iniciar sincronización manual
+  const handleSyncNow = async () => {
+    if (!isOnline) {
+      Alert.alert(
+        "Sin conexión",
+        "No es posible sincronizar sin conexión a internet. Por favor conéctese a internet e intente nuevamente.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+    
+    if (pendingCount === 0) {
+      Alert.alert(
+        "Sin registros pendientes",
+        "No hay registros pendientes para sincronizar.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+    
+    setIsSyncing(true);
+    
+    try {
+      // Llamamos a la función de sincronización
+      const resultado = await sincronizarRegistrosPendientes((progress) => {
+        setSyncProgress(progress.percentage);
+      });
+      
+      // Manejamos el resultado
+      handleSyncComplete(resultado);
+    } catch (error) {
+      console.error("Error en sincronización:", error);
+      setIsSyncing(false);
+      setSyncProgress(0);
+      
+      Alert.alert(
+        "Error de sincronización",
+        "No se pudieron sincronizar todos los registros. Por favor intente nuevamente más tarde.",
+        [{ text: "OK" }]
+      );
     }
   };
 
@@ -272,12 +430,49 @@ const RegistroBienesScreen = ({ navigation }) => {
     );
   }
 
+  // Mostrar el indicador de sincronización
+  if (isSyncing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#9F2241" />
+        <Text style={styles.loadingText}>Sincronizando... {syncProgress}%</Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
+        {/* Barra de estado de conexión */}
+        {!isOnline && (
+          <View style={styles.offlineBar}>
+            <Text style={styles.offlineText}>
+              Modo sin conexión. Los registros se guardarán localmente.
+            </Text>
+          </View>
+        )}
+        
+        {/* Barra de registros pendientes */}
+        {pendingCount > 0 && (
+          <View style={styles.pendingBar}>
+            <Text style={styles.pendingText}>
+              {pendingCount} registro{pendingCount !== 1 ? 's' : ''} pendiente{pendingCount !== 1 ? 's' : ''} de sincronizar
+            </Text>
+            <Button
+              mode="contained"
+              onPress={handleSyncNow}
+              disabled={!isOnline}
+              style={styles.syncButton}
+              labelStyle={styles.syncButtonLabel}
+            >
+              Sincronizar ahora
+            </Button>
+          </View>
+        )}
+      
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <Card style={styles.card}>
             <Card.Content>
@@ -355,20 +550,20 @@ const RegistroBienesScreen = ({ navigation }) => {
               <Text style={styles.label}>Fecha de Entrega:</Text>
               {renderDatePicker()}
               
-              <View style={styles.pickerContainer}>
-                <Text style={styles.label}>Responsable:</Text>
-                <Picker
-                  selectedValue={responsable}
-                  style={[styles.picker, errors.responsable ? styles.inputError : null]}
-                  onValueChange={handleResponsableChange}
-                >
-                  <Picker.Item label="SELECCIONE RESPONSABLE" value="" />
-                  {responsables.map((resp, index) => (
-                    <Picker.Item key={index} label={resp.NOMBRE} value={resp.NOMBRE} />
-                  ))}
-                </Picker>
-                {errors.responsable && <Text style={styles.errorText}>{errors.responsable}</Text>}
-              </View>
+              <TextInput
+                label="Responsable (número de empleado)"
+                value={responsable}
+                onChangeText={(text) => {
+                  setResponsable(text);
+                  setAreaAsignada('Sin asignar'); // Usamos un valor por defecto en lugar de cadena vacía
+                }}
+                style={styles.input}
+                mode="outlined"
+                outlineColor={errors.responsable ? '#FF0000' : styles.outlineColor.color}
+                activeOutlineColor={styles.activeOutlineColor.color}
+                error={errors.responsable ? true : false}
+              />
+              {errors.responsable && <Text style={styles.errorText}>{errors.responsable}</Text>}
               
               <TextInput
                 label="Ubicación"
@@ -381,17 +576,6 @@ const RegistroBienesScreen = ({ navigation }) => {
                 error={errors.ubicacion ? true : false}
               />
               {errors.ubicacion && <Text style={styles.errorText}>{errors.ubicacion}</Text>}
-              
-              <TextInput
-                label="Área Asignada"
-                value={areaAsignada}
-                onChangeText={setAreaAsignada}
-                style={styles.input}
-                mode="outlined"
-                outlineColor={styles.outlineColor.color}
-                activeOutlineColor={styles.activeOutlineColor.color}
-                editable={false} // Automáticamente llenado por el responsable
-              />
               
               <Divider style={styles.divider} />
               
@@ -423,7 +607,7 @@ const RegistroBienesScreen = ({ navigation }) => {
                 style={styles.button}
                 labelStyle={styles.buttonLabel}
               >
-                REGISTRAR EQUIPO
+                {isOnline ? "REGISTRAR EQUIPO" : "GUARDAR LOCALMENTE"}
               </Button>
             </Card.Content>
           </Card>
@@ -434,121 +618,43 @@ const RegistroBienesScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#7b1c34',
+// Estilos adicionales específicos para la funcionalidad offline
+const additionalStyles = StyleSheet.create({
+  offlineBar: {
+    backgroundColor: '#f8d7da',
+    padding: 10,
+    width: '100%',
   },
-  container: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    padding: 16,
-  },
-  card: {
-    borderRadius: 15,
-    marginVertical: 20,
-    elevation: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#9F2241',
+  offlineText: {
+    color: '#721c24',
     textAlign: 'center',
-    marginVertical: 15,
-    textTransform: 'uppercase',
+    fontWeight: '500',
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#9F2241',
-    borderLeftWidth: 5,
-    borderLeftColor: '#9F2241',
-    paddingLeft: 15,
-    marginVertical: 15,
-  },
-  label: {
-    fontSize: 16,
-    color: '#9F2241',
-    marginBottom: 5,
-  },
-  input: {
-    marginBottom: 15,
-    backgroundColor: 'white',
-  },
-  outlineColor: {
-    color: '#ddd',
-  },
-  activeOutlineColor: {
-    color: '#9F2241',
-  },
-  pickerContainer: {
-    marginBottom: 15,
-  },
-  picker: {
-    height: 50,
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-  },
-  inputError: {
-    borderColor: '#FF0000',
-    borderWidth: 1,
-  },
-  errorText: {
-    color: '#FF0000',
-    fontSize: 12,
-    marginTop: -10,
-    marginBottom: 10,
-  },
-  dateButton: {
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    padding: 15,
-    marginBottom: 15,
-  },
-  dateButtonText: {
-    color: '#333',
-  },
-  dateText: {
-    fontSize: 16,
-    color: '#333',
-    backgroundColor: '#f4f4f4',
-    padding: 15,
-    borderRadius: 5,
-    marginBottom: 15,
-  },
-  button: {
-    backgroundColor: '#9F2241',
-    marginTop: 20,
-    paddingVertical: 8,
-  },
-  buttonLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#BC955C',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#ddd',
-    marginVertical: 10,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  pendingBar: {
+    backgroundColor: '#fff3cd',
+    padding: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#7b1c34',
+    width: '100%',
   },
-  loadingText: {
-    marginTop: 10,
-    color: 'white',
-    fontSize: 16,
+  pendingText: {
+    color: '#856404',
+    flex: 1,
+  },
+  syncButton: {
+    backgroundColor: '#9F2241',
+    marginLeft: 10,
+    height: 36,
+  },
+  syncButtonLabel: {
+    fontSize: 12,
+    marginVertical: 0,
+    paddingVertical: 0,
   },
 });
+
+// Fusionar los estilos adicionales con los importados
+Object.assign(styles, additionalStyles);
 
 export default RegistroBienesScreen;
