@@ -118,49 +118,51 @@ const styles = StyleSheet.create({
   },
   
   // Estilos adicionales para la funcionalidad offline y sincronización
-  connectionBar: {
-    flexDirection: 'row',
-    backgroundColor: '#f8f9fa',
-    padding: 10,
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-  },
-  connectionIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
-  },
-  onlineIndicator: {
-    backgroundColor: '#28a745',
-  },
-  offlineIndicator: {
-    backgroundColor: '#dc3545',
-  },
-  connectionStatus: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  pendingCountContainer: {
-    marginLeft: 'auto',
-    backgroundColor: '#9F2241',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-  },
-  pendingCountText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  onlineText: {
-    color: '#155724',
-  },
-  offlineText: {
-    color: '#721c24',
-  },
+// Estilos modificados para la barra de conexión
+connectionBar: {
+  flexDirection: 'row',
+  backgroundColor: '#f8f9fa',
+  padding: 10,
+  alignItems: 'center',
+  borderRadius: 8,
+  marginBottom: 10,
+  borderWidth: 1,
+  borderColor: '#ddd',
+},
+connectionIndicator: {
+  width: 12,
+  height: 12,
+  borderRadius: 6,
+  marginRight: 8,
+},
+onlineIndicator: {
+  backgroundColor: '#28a745',
+},
+offlineIndicator: {
+  backgroundColor: '#dc3545',
+},
+connectionStatus: {
+  fontSize: 14,
+  fontWeight: '500',
+},
+pendingCountContainer: {
+  marginLeft: 'auto',
+  backgroundColor: '#9F2241',
+  borderRadius: 20,
+  paddingHorizontal: 10,
+  paddingVertical: 2,
+},
+pendingCountText: {
+  color: '#fff',
+  fontSize: 12,
+  fontWeight: 'bold',
+},
+onlineText: {
+  color: '#155724',
+},
+offlineText: {
+  color: '#721c24',
+},
   
   // Estilos para el panel de sincronización
   syncCard: {
@@ -401,6 +403,10 @@ const styles = StyleSheet.create({
   },
   infoMessageText: {
     color: '#0c5460',
+  },
+  searchableDropdown: {
+    borderRadius: 4,
+    marginBottom: 5,
   },
 });
 

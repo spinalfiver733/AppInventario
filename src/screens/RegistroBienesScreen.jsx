@@ -15,6 +15,9 @@ import { TextInput, Button, Card, Divider, Badge } from 'react-native-paper';
 import { Picker } from '@react-native-picker/picker';
 import { StatusBar } from 'expo-status-bar';
 
+import SearchableDropdown from '../components/SearchableDropdown';
+import { BIENES_INFORMATICOS } from '../data/bienesInformaticos';
+
 // Importamos el servicio de API
 import { registrarEquipo } from '../services/apiService';
 
@@ -28,6 +31,7 @@ import {
 
 // Importamos los estilos desde el archivo separado
 import styles from '../styles/styles';
+
 
 // Importación condicional para DateTimePicker
 let DateTimePicker;
@@ -281,8 +285,7 @@ const RegistroBienesScreen = ({ navigation }) => {
           if (resultado && resultado.success) {
             Alert.alert(
               "Éxito",
-              "El equipo ha sido registrado correctamente" + 
-                (resultado.method ? ` (Método: ${resultado.method})` : ""),
+              "El equipo ha sido registrado correctamente",
               [
                 { 
                   text: "OK", 
@@ -600,25 +603,25 @@ const RegistroBienesScreen = ({ navigation }) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
-        {/* Indicador del estado de conexión */}
-        <View style={styles.connectionBar}>
-          <View style={[styles.connectionIndicator, isOnline ? styles.onlineIndicator : styles.offlineIndicator]} />
-          <Text style={[styles.connectionStatus, isOnline ? styles.onlineText : styles.offlineText]}>
-            {isOnline ? "Conectado a internet" : "Sin conexión a internet"}
-          </Text>
-          {pendingCount > 0 && (
-            <View style={styles.pendingCountContainer}>
-              <Text style={styles.pendingCountText}>
-                {pendingCount} registro{pendingCount !== 1 ? 's' : ''} pendiente{pendingCount !== 1 ? 's' : ''}
-              </Text>
-            </View>
-          )}
-        </View>
-        
-        {/* Panel de sincronización */}
-        {renderSyncPanel()}
-        
         <ScrollView contentContainerStyle={styles.scrollContainer}>
+          {/* Indicador del estado de conexión - AHORA DENTRO DEL SCROLLVIEW */}
+          <View style={styles.connectionBar}>
+            <View style={[styles.connectionIndicator, isOnline ? styles.onlineIndicator : styles.offlineIndicator]} />
+            <Text style={[styles.connectionStatus, isOnline ? styles.onlineText : styles.offlineText]}>
+              {isOnline ? "Conectado a internet" : "Sin conexión a internet"}
+            </Text>
+            {pendingCount > 0 && (
+              <View style={styles.pendingCountContainer}>
+                <Text style={styles.pendingCountText}>
+                  {pendingCount} registro{pendingCount !== 1 ? 's' : ''} pendiente{pendingCount !== 1 ? 's' : ''}
+                </Text>
+              </View>
+            )}
+          </View>
+          
+          {/* Panel de sincronización */}
+          {renderSyncPanel()}
+          
           <Card style={styles.card}>
             <Card.Content>
               <Text style={styles.title}>Registro de Inventario de Bienes Informáticos</Text>
@@ -628,16 +631,14 @@ const RegistroBienesScreen = ({ navigation }) => {
               
               <View style={styles.pickerContainer}>
                 <Text style={styles.label}>Bien Informático:</Text>
-                <Picker
+                <SearchableDropdown
+                  items={BIENES_INFORMATICOS}
                   selectedValue={bienInformatico}
-                  style={[styles.picker, errors.bienInformatico ? styles.inputError : null]}
                   onValueChange={(itemValue) => setBienInformatico(itemValue)}
-                >
-                  <Picker.Item label="SELECCIONE TIPO DE BIEN" value="" />
-                  <Picker.Item label="CPU" value="CPU" />
-                  <Picker.Item label="MONITOR" value="MONITOR" />
-                  <Picker.Item label="EQUIPO COMPLETO" value="EQUIPO COMPLETO" />
-                </Picker>
+                  placeholder="SELECCIONE TIPO DE BIEN"
+                  style={styles.searchableDropdown}
+                  error={errors.bienInformatico ? true : false}
+                />
                 {errors.bienInformatico && <Text style={styles.errorText}>{errors.bienInformatico}</Text>}
               </View>
               
