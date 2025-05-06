@@ -9,10 +9,14 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~4.0.1",
+    "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-native-community/datetimepicker": "^8.3.0",
     "@react-native-community/netinfo": "^11.4.1",
     "@react-native-picker/picker": "^2.9.0",
+    "@react-navigation/bottom-tabs": "^7.3.12",
+    "@react-navigation/native": "^7.1.8",
+    "@react-navigation/stack": "^7.3.1",
     "axios": "^1.9.0",
     "expo": "^53.0.7",
     "expo-build-properties": "0.13.2",
@@ -21,6 +25,8 @@
     "react-dom": "18.3.1",
     "react-native": "^0.76.9",
     "react-native-paper": "^5.14.0",
+    "react-native-safe-area-context": "^5.4.0",
+    "react-native-screens": "^4.10.0",
     "react-native-web": "~0.19.13"
   },
   "devDependencies": {
