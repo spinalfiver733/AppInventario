@@ -238,6 +238,88 @@ export const eliminarEquipo = async (id) => {
   }
 };
 
+/**
+ * Sincroniza los registros pendientes con el servidor
+ * @param {Array} pendientes - Registros pendientes para sincronizar
+ * @returns {Promise<Object>} - Resultado de la sincronización
+ */
+export const sincronizarRegistros = async (pendientes) => {
+  try {
+    console.log(`Iniciando sincronización de ${pendientes.length} registros pendientes`);
+    
+    let sincronizados = 0;
+    let fallidos = 0;
+    const procesados = new Set(); // Para evitar procesar duplicados
+    const idsAEliminar = []; // IDs de registros sincronizados exitosamente
+    
+    // Procesar cada registro pendiente
+    for (const registro of pendientes) {
+      // Evitar procesar el mismo registro más de una vez
+      if (procesados.has(registro.tempId)) {
+        console.log(`Registro ${registro.tempId} ya procesado, omitiendo`);
+        continue;
+      }
+      
+      try {
+        console.log(`Sincronizando registro: ${registro.tempId}`);
+        
+        // Adaptar los datos al formato esperado por la API
+        const datosFormateados = {
+          bien_informatico: registro.bien_informatico,
+          modelo: registro.modelo,
+          numero_serie: registro.numero_serie,
+          numero_inventario: registro.numero_inventario,
+          contrato_adquisicion: registro.contrato_adquisicion || '',
+          fecha_entrega: registro.fecha_entrega,
+          responsable: registro.responsable,
+          ubicacion: registro.ubicacion,
+          area_asignada: registro.area_asignada || 'Sin asignar',
+          estatus: registro.estatus || 'activo',
+          fecha_captura: registro.fecha_captura
+        };
+        
+        // Intentar registrar el equipo
+        const resultado = await registrarEquipo(datosFormateados);
+        
+        if (resultado.success) {
+          console.log(`Registro ${registro.tempId} sincronizado exitosamente`);
+          sincronizados++;
+          idsAEliminar.push(registro.tempId);
+          procesados.add(registro.tempId); // Marcar como procesado
+        } else {
+          console.error(`Error sincronizando registro ${registro.tempId}:`, resultado.error);
+          fallidos++;
+        }
+        
+        // Pequeña pausa entre solicitudes para evitar sobrecargar el servidor
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+      } catch (error) {
+        console.error(`Error inesperado sincronizando registro ${registro.tempId}:`, error);
+        fallidos++;
+      }
+    }
+    
+    return {
+      success: sincronizados > 0,
+      sincronizados,
+      fallidos,
+      syncedCount: sincronizados, // Para compatibilidad con código existente
+      failedCount: fallidos,      // Para compatibilidad con código existente
+      idsEliminados: idsAEliminar // Añadimos los IDs eliminados para referencia
+    };
+    
+  } catch (error) {
+    console.error('Error general en sincronización:', error);
+    return {
+      success: false,
+      error: error.message,
+      sincronizados: 0,
+      fallidos: pendientes.length
+    };
+  }
+};
+
 // Exportación por defecto
 export default {
   checkConnection,
@@ -245,5 +327,6 @@ export default {
   getEquipoById,
   registrarEquipo,
   actualizarEquipo,
-  eliminarEquipo
+  eliminarEquipo,
+  sincronizarRegistros
 };

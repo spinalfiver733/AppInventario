@@ -19,19 +19,23 @@ import SearchableDropdown from '../components/SearchableDropdown';
 import { BIENES_INFORMATICOS } from '../data/bienesInformaticos';
 
 // Importamos el servicio de API
-import { registrarEquipo } from '../services/apiService';
+import { 
+  registrarEquipo, 
+  sincronizarRegistros, 
+  checkConnection 
+} from '../services/apiService';
 
 // Importamos el servicio de almacenamiento local
 import { 
   guardarRegistroPendiente, 
   obtenerRegistrosPendientes, 
   contarRegistrosPendientes,
-  eliminarRegistrosPendientes
+  eliminarRegistrosPendientes,
+  repararDuplicadosPendientes
 } from '../services/storageService';
 
 // Importamos los estilos desde el archivo separado
 import styles from '../styles/styles';
-
 
 // Importación condicional para DateTimePicker
 let DateTimePicker;
@@ -86,6 +90,36 @@ const RegistroBienesScreen = ({ navigation }) => {
   // Estado para sincronización en progreso
   const [isSyncing, setIsSyncing] = useState(false);
 
+  // Reparación de duplicados y verificación de conexión al iniciar
+  useEffect(() => {
+    const inicializarApp = async () => {
+      try {
+        // Verificar y reparar duplicados al inicio
+        const resultadoReparacion = await repararDuplicadosPendientes();
+        
+        if (resultadoReparacion.eliminados > 0) {
+          console.log(`Se eliminaron ${resultadoReparacion.eliminados} registros duplicados al iniciar`);
+        }
+        
+        // Actualizar contador de pendientes después de reparación
+        await actualizarContadorPendientes();
+        
+        // Verificar estado inicial de la conexión
+        const estaConectado = await checkConnection();
+        setIsOnline(estaConectado);
+        
+        // Si hay conexión y registros pendientes, mostrar panel de sincronización
+        if (estaConectado && pendingCount > 0) {
+          setShowSyncPanel(true);
+        }
+      } catch (error) {
+        console.error('Error al inicializar la aplicación:', error);
+      }
+    };
+    
+    inicializarApp();
+  }, []);
+
   // Cargar los responsables y configurar detección de red al montar el componente
   useEffect(() => {
     // Configurar el listener de red para detectar conexión
@@ -93,15 +127,10 @@ const RegistroBienesScreen = ({ navigation }) => {
       const isConnected = state.isConnected && state.isInternetReachable;
       setIsOnline(isConnected);
       
-      // Si recuperamos la conexión y hay registros pendientes, intentar sincronizar
+      // Si recuperamos la conexión y hay registros pendientes, mostrar panel
       if (isConnected && pendingCount > 0) {
-        sincronizarRegistrosPendientes();
+        setShowSyncPanel(true);
       }
-    });
-    
-    // Verificar estado inicial de la conexión
-    NetInfo.fetch().then(state => {
-      setIsOnline(state.isConnected && state.isInternetReachable);
     });
     
     // Cargar los responsables (deberías cargarlos desde tu API)
@@ -152,7 +181,7 @@ const RegistroBienesScreen = ({ navigation }) => {
   const handleResponsableChange = (itemValue, itemIndex) => {
     setResponsable(itemValue);
     // Establecemos área asignada como cadena vacía
-    setAreaAsignada('');
+    setAreaAsignada('Sin asignar');
   };
 
   // Validar el formulario
@@ -209,7 +238,7 @@ const RegistroBienesScreen = ({ navigation }) => {
     setFechaEntrega(new Date());
     setResponsable('');
     setUbicacion('');
-    setAreaAsignada('');
+    setAreaAsignada('Sin asignar');
     setEstatus('');
     setFechaCaptura(new Date());
     setErrors({});
@@ -233,7 +262,12 @@ const RegistroBienesScreen = ({ navigation }) => {
         );
         return true;
       } else {
-        throw new Error("No se pudo guardar localmente");
+        Alert.alert(
+          "Aviso",
+          "Este registro ya existe en la cola de pendientes. No se guardará como duplicado.",
+          [{ text: "OK" }]
+        );
+        return false;
       }
     } catch (error) {
       console.error("Error al guardar localmente:", error);
@@ -276,8 +310,12 @@ const RegistroBienesScreen = ({ navigation }) => {
     };
     
     try {
-      // Si estamos en línea según nuestro estado local, intentamos enviar al servidor
-      if (isOnline) {
+      // Verificar el estado actual de la conexión (realizar comprobación real)
+      const estaConectado = await checkConnection();
+      setIsOnline(estaConectado);
+      
+      // Si estamos en línea, intentamos enviar al servidor
+      if (estaConectado) {
         try {
           // Usar el servicio API para registrar el equipo
           const resultado = await registrarEquipo(formData);
@@ -296,6 +334,7 @@ const RegistroBienesScreen = ({ navigation }) => {
                 }
               ]
             );
+            setLoading(false);
             return;
           }
           
@@ -329,6 +368,7 @@ const RegistroBienesScreen = ({ navigation }) => {
       } else {
         // Si no estamos en línea, guardamos localmente directamente
         await guardarEnLocal(formData);
+        setLoading(false);
       }
     } catch (error) {
       console.error("Error general:", error);
@@ -337,7 +377,6 @@ const RegistroBienesScreen = ({ navigation }) => {
         "Ocurrió un error al procesar la solicitud. Por favor intente nuevamente.",
         [{ text: "OK" }]
       );
-    } finally {
       setLoading(false);
     }
   };
@@ -345,10 +384,7 @@ const RegistroBienesScreen = ({ navigation }) => {
   // Función para sincronizar registros pendientes
   const sincronizarRegistrosPendientes = async () => {
     // Verificamos el estado actual de la conexión
-    const netInfoState = await NetInfo.fetch();
-    const estaConectado = netInfoState.isConnected && netInfoState.isInternetReachable;
-    
-    // Actualizamos el estado de conexión
+    const estaConectado = await checkConnection();
     setIsOnline(estaConectado);
     
     if (!estaConectado) {
@@ -375,70 +411,29 @@ const RegistroBienesScreen = ({ navigation }) => {
       // Obtener todos los registros pendientes
       const registrosPendientes = await obtenerRegistrosPendientes();
       
-      // Sincronización exitosa (contador)
-      let sincronizados = 0;
-      // Registros que no se pudieron sincronizar
-      const errores = [];
-      // IDs de registros sincronizados exitosamente
-      const idsExitosos = [];
+      // Usar la función mejorada de sincronización
+      const resultado = await sincronizarRegistros(registrosPendientes);
       
-      // Procesar cada registro pendiente
-      for (const registro of registrosPendientes) {
-        try {
-          // Enviamos el registro al servidor
-          const resultado = await registrarEquipo({
-            bien_informatico: registro.bien_informatico,
-            modelo: registro.modelo,
-            numero_serie: registro.numero_serie,
-            numero_inventario: registro.numero_inventario,
-            contrato_adquisicion: registro.contrato_adquisicion,
-            fecha_entrega: registro.fecha_entrega,
-            responsable: registro.responsable,
-            ubicacion: registro.ubicacion,
-            area_asignada: registro.area_asignada || 'Sin asignar',
-            estatus: registro.estatus,
-            fecha_captura: registro.fecha_captura,
-          });
-          
-          // Si el registro fue exitoso
-          if (resultado && resultado.success) {
-            sincronizados++;
-            idsExitosos.push(registro.tempId);
-          } else {
-            errores.push(`Error al sincronizar ${registro.bien_informatico} - ${registro.modelo}: ${resultado?.error || 'Error desconocido'}`);
-          }
-        } catch (error) {
-          console.error("Error al sincronizar registro:", error, registro);
-          errores.push(`Error al sincronizar ${registro.bien_informatico} - ${registro.modelo}: ${error.message || 'Error de conexión'}`);
-        }
+      // Eliminar registros sincronizados exitosamente
+      if (resultado.success && resultado.idsEliminados && resultado.idsEliminados.length > 0) {
+        await eliminarRegistrosPendientes(resultado.idsEliminados);
       }
       
-      // Si hay registros sincronizados exitosamente, los eliminamos del almacenamiento local
-      if (idsExitosos.length > 0) {
-        await eliminarRegistrosPendientes(idsExitosos);
-      }
+      // Actualizar contador de pendientes
+      await actualizarContadorPendientes();
       
-      // Actualizamos el contador de pendientes
-      actualizarContadorPendientes();
-      
-      // Mostramos el resultado de la sincronización
-      if (errores.length === 0) {
+      // Mostrar resultado de la sincronización
+      if (resultado.success) {
         Alert.alert(
           "Sincronización completada",
-          `Se sincronizaron ${sincronizados} registro(s) correctamente.`,
+          `Se sincronizaron ${resultado.sincronizados} registro(s) correctamente. ${resultado.fallidos} registro(s) fallaron.`,
           [{ text: "OK" }]
         );
       } else {
         Alert.alert(
-          "Sincronización parcial",
-          `Se sincronizaron ${sincronizados} registro(s), pero hubo ${errores.length} error(es).`,
-          [
-            { 
-              text: "Ver detalles", 
-              onPress: () => Alert.alert("Detalles de errores", errores.join('\n\n')) 
-            },
-            { text: "OK" }
-          ]
+          "Error de sincronización",
+          `No se pudieron sincronizar los registros. Error: ${resultado.error || 'Error desconocido'}`,
+          [{ text: "OK" }]
         );
       }
     } catch (error) {
@@ -472,7 +467,8 @@ const RegistroBienesScreen = ({ navigation }) => {
         return `${index + 1}. ${reg.bien_informatico} - ${reg.modelo}
    Serie: ${reg.numero_serie}
    Resp: ${reg.responsable}
-   Fecha: ${new Date(reg.createdAt).toLocaleString()}`;
+   Fecha: ${new Date(reg.createdAt).toLocaleString()}
+   ID: ${reg.tempId}`;
       }).join('\n\n');
       
       Alert.alert(
@@ -539,6 +535,34 @@ const RegistroBienesScreen = ({ navigation }) => {
     }
   };
 
+  // Función para forzar la reparación de duplicados
+  const forzarReparacionDuplicados = async () => {
+    setLoading(true);
+    
+    try {
+      const resultado = await repararDuplicadosPendientes();
+      
+      await actualizarContadorPendientes();
+      
+      Alert.alert(
+        "Reparación completada",
+        resultado.eliminados > 0 
+          ? `Se eliminaron ${resultado.eliminados} registros duplicados.` 
+          : "No se encontraron registros duplicados.",
+        [{ text: "OK" }]
+      );
+    } catch (error) {
+      console.error("Error al reparar duplicados:", error);
+      Alert.alert(
+        "Error",
+        "No se pudieron reparar los duplicados. Error: " + error.message,
+        [{ text: "OK" }]
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Renderizar el Panel de Sincronización
   const renderSyncPanel = () => {
     if (!showSyncPanel || pendingCount === 0) return null;
@@ -580,6 +604,15 @@ const RegistroBienesScreen = ({ navigation }) => {
               {isSyncing ? "Sincronizando..." : "Sincronizar Ahora"}
             </Button>
           </View>
+          
+          {/* Botón adicional para reparar duplicados manualmente si es necesario */}
+          <Button 
+            mode="text" 
+            onPress={forzarReparacionDuplicados}
+            style={styles.repairButton}
+            labelStyle={styles.repairButtonLabel}
+          >
+          </Button>
         </Card.Content>
       </Card>
     );
@@ -591,7 +624,7 @@ const RegistroBienesScreen = ({ navigation }) => {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#BC955C" />
         <Text style={styles.loadingText}>
-          {isSyncing ? "Sincronizando registros..." : "Guardando datos..."}
+          {isSyncing ? "Sincronizando registros..." : "Procesando operación..."}
         </Text>
       </View>
     );
@@ -604,7 +637,7 @@ const RegistroBienesScreen = ({ navigation }) => {
         style={styles.container}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {/* Indicador del estado de conexión - AHORA DENTRO DEL SCROLLVIEW */}
+          {/* Indicador del estado de conexión */}
           <View style={styles.connectionBar}>
             <View style={[styles.connectionIndicator, isOnline ? styles.onlineIndicator : styles.offlineIndicator]} />
             <Text style={[styles.connectionStatus, isOnline ? styles.onlineText : styles.offlineText]}>
@@ -648,8 +681,8 @@ const RegistroBienesScreen = ({ navigation }) => {
                 onChangeText={setModelo}
                 style={styles.input}
                 mode="outlined"
-                outlineColor={errors.modelo ? '#FF0000' : styles.outlineColor.color}
-                activeOutlineColor={styles.activeOutlineColor.color}
+                outlineColor={errors.modelo ? '#FF0000' : styles.outlineColor?.color}
+                activeOutlineColor={styles.activeOutlineColor?.color}
                 error={errors.modelo ? true : false}
               />
               {errors.modelo && <Text style={styles.errorText}>{errors.modelo}</Text>}
@@ -660,8 +693,8 @@ const RegistroBienesScreen = ({ navigation }) => {
                 onChangeText={setNumeroSerie}
                 style={styles.input}
                 mode="outlined"
-                outlineColor={errors.numeroSerie ? '#FF0000' : styles.outlineColor.color}
-                activeOutlineColor={styles.activeOutlineColor.color}
+                outlineColor={errors.numeroSerie ? '#FF0000' : styles.outlineColor?.color}
+                activeOutlineColor={styles.activeOutlineColor?.color}
                 error={errors.numeroSerie ? true : false}
               />
               {errors.numeroSerie && <Text style={styles.errorText}>{errors.numeroSerie}</Text>}
@@ -672,8 +705,8 @@ const RegistroBienesScreen = ({ navigation }) => {
                 onChangeText={setNumeroInventario}
                 style={styles.input}
                 mode="outlined"
-                outlineColor={errors.numeroInventario ? '#FF0000' : styles.outlineColor.color}
-                activeOutlineColor={styles.activeOutlineColor.color}
+                outlineColor={errors.numeroInventario ? '#FF0000' : styles.outlineColor?.color}
+                activeOutlineColor={styles.activeOutlineColor?.color}
                 error={errors.numeroInventario ? true : false}
               />
               {errors.numeroInventario && <Text style={styles.errorText}>{errors.numeroInventario}</Text>}
@@ -684,8 +717,8 @@ const RegistroBienesScreen = ({ navigation }) => {
                 onChangeText={setContratoAdquisicion}
                 style={styles.input}
                 mode="outlined"
-                outlineColor={styles.outlineColor.color}
-                activeOutlineColor={styles.activeOutlineColor.color}
+                outlineColor={styles.outlineColor?.color}
+                activeOutlineColor={styles.activeOutlineColor?.color}
               />
               
               <Divider style={styles.divider} />
@@ -705,8 +738,8 @@ const RegistroBienesScreen = ({ navigation }) => {
                 }}
                 style={styles.input}
                 mode="outlined"
-                outlineColor={errors.responsable ? '#FF0000' : styles.outlineColor.color}
-                activeOutlineColor={styles.activeOutlineColor.color}
+                outlineColor={errors.responsable ? '#FF0000' : styles.outlineColor?.color}
+                activeOutlineColor={styles.activeOutlineColor?.color}
                 error={errors.responsable ? true : false}
               />
               {errors.responsable && <Text style={styles.errorText}>{errors.responsable}</Text>}
@@ -717,8 +750,8 @@ const RegistroBienesScreen = ({ navigation }) => {
                 onChangeText={setUbicacion}
                 style={styles.input}
                 mode="outlined"
-                outlineColor={errors.ubicacion ? '#FF0000' : styles.outlineColor.color}
-                activeOutlineColor={styles.activeOutlineColor.color}
+                outlineColor={errors.ubicacion ? '#FF0000' : styles.outlineColor?.color}
+                activeOutlineColor={styles.activeOutlineColor?.color}
                 error={errors.ubicacion ? true : false}
               />
               {errors.ubicacion && <Text style={styles.errorText}>{errors.ubicacion}</Text>}
