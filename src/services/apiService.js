@@ -1,5 +1,6 @@
 // src/services/apiService.js
 import axios from "axios";
+import { generarIdUnicoRegistro } from "./storageService";
 
 // URL base de la API
 const API_URL = 'http://www.intranet.gamadero.cdmx.gob.mx/INVENTARIOGAM/public/api';
@@ -124,13 +125,20 @@ export const registrarEquipo = async (datos) => {
   try {
     console.log('Registrando nuevo equipo...');
     
+    // Si no tiene un ID de registro ya generado (desde offline), generarlo ahora
+    if (!datos.id_registro && datos.usuario_id) {
+      datos.id_registro = await generarIdUnicoRegistro(datos.usuario_id);
+      console.log(`ID único generado para el registro: ${datos.id_registro}`);
+    }
+    
     // Formatear los datos según la estructura esperada por la API
     const datosFormateados = {
+      id_registro: datos.id_registro || 'SIN-ID',
       bien_informatico: datos.bien_informatico,
       modelo: datos.modelo,
       numero_serie: datos.numero_serie,
       numero_inventario: datos.numero_inventario,
-      contrato_adquisicion: datos.contrato_adquisicion || '',
+      contrato_adquisicion: datos.contrato_adquisicion || 'sin contrato de adquisición',
       fecha_entrega: datos.fecha_entrega,
       responsable: datos.responsable,
       ubicacion: datos.ubicacion,
@@ -139,7 +147,7 @@ export const registrarEquipo = async (datos) => {
       fecha_captura: datos.fecha_captura
     };
     
-    console.log('Enviando datos a la ruta correcta:', datosFormateados);
+    console.log('Enviando datos al servidor:', datosFormateados);
     
     // Usar exactamente la ruta definida en routes/api.php
     const response = await axios.post(
@@ -187,7 +195,8 @@ export const actualizarEquipo = async (id, datos) => {
       ubicacion: datos.ubicacion,
       area_asignada: datos.area_asignada,
       estatus: datos.estatus,
-      fecha_captura: datos.fecha_captura
+      fecha_captura: datos.fecha_captura,
+      id_registro: datos.id_registro || 'SIN-ID'
     };
     
     // Basado en las convenciones de Laravel, probablemente la ruta de actualización es
@@ -265,6 +274,7 @@ export const sincronizarRegistros = async (pendientes) => {
         
         // Adaptar los datos al formato esperado por la API
         const datosFormateados = {
+          id_registro: registro.id_registro || 'SIN-ID',
           bien_informatico: registro.bien_informatico,
           modelo: registro.modelo,
           numero_serie: registro.numero_serie,

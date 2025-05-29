@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEYS = {
   PENDING_REGISTROS: 'pending_registros',
+  USER_COUNTERS: 'user_counters'  // Nueva clave para almacenar contadores
 };
 
 /**
@@ -23,6 +24,51 @@ const generarFirmaRegistro = (registro) => {
   
   // Crear una cadena única usando estos campos
   return camposUnicos.filter(Boolean).join('|').toLowerCase();
+};
+
+/**
+ * Obtiene el siguiente contador para un usuario específico
+ * @param {string} usuarioId - ID del usuario (ej: T10-U01)
+ * @returns {Promise<string>} - Contador formateado (ej: 0001)
+ */
+export const obtenerSiguienteContador = async (usuarioId) => {
+  try {
+    // Obtener contadores existentes
+    const contadoresJSON = await AsyncStorage.getItem(STORAGE_KEYS.USER_COUNTERS);
+    const contadores = contadoresJSON ? JSON.parse(contadoresJSON) : {};
+    
+    // Obtener el último contador para este usuario o inicializar en 0
+    let ultimoContador = contadores[usuarioId] || 0;
+    
+    // Incrementar el contador
+    ultimoContador += 1;
+    
+    // Guardar el nuevo contador
+    contadores[usuarioId] = ultimoContador;
+    await AsyncStorage.setItem(STORAGE_KEYS.USER_COUNTERS, JSON.stringify(contadores));
+    
+    // Formatear el contador con ceros a la izquierda
+    return ultimoContador.toString().padStart(4, '0');
+  } catch (error) {
+    console.error('Error al obtener siguiente contador:', error);
+    // En caso de error, usar timestamp como fallback
+    const fallback = Date.now().toString().slice(-4);
+    return fallback;
+  }
+};
+
+/**
+ * Genera un ID único para un registro basado en el usuario
+ * @param {string} usuarioId - ID del usuario (ej: T10-U01)
+ * @returns {Promise<string>} - ID único (ej: T10-U01-0001)
+ */
+export const generarIdUnicoRegistro = async (usuarioId) => {
+  if (!usuarioId) {
+    return `SIN-USUARIO-${Date.now().toString().slice(-8)}`;
+  }
+  
+  const contador = await obtenerSiguienteContador(usuarioId);
+  return `${usuarioId}-${contador}`;
 };
 
 /**
@@ -49,11 +95,18 @@ export const guardarRegistroPendiente = async (registro) => {
       return false;
     }
     
-    // Agregar un ID temporal local y timestamp
+    // Generar ID único para este registro basado en el usuario
+    let idRegistro = 'SIN-ID';
+    if (registro.usuario_id) {
+      idRegistro = await generarIdUnicoRegistro(registro.usuario_id);
+    }
+    
+    // Agregar un ID temporal local, timestamp y el ID único
     const registroConId = {
       ...registro,
       tempId: `temp_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
       createdAt: new Date().toISOString(),
+      id_registro: idRegistro
     };
     
     // Agregar el nuevo registro a la lista
@@ -65,7 +118,7 @@ export const guardarRegistroPendiente = async (registro) => {
       JSON.stringify(nuevosRegistros)
     );
     
-    console.log(`Registro guardado localmente con ID temporal: ${registroConId.tempId}`);
+    console.log(`Registro guardado localmente con ID: ${idRegistro} (tempId: ${registroConId.tempId})`);
     return true;
   } catch (error) {
     console.error('Error al guardar registro pendiente:', error);
@@ -230,6 +283,21 @@ export const repararDuplicadosPendientes = async () => {
   }
 };
 
+/**
+ * Reinicia todos los contadores de usuarios
+ * @returns {Promise<boolean>} - True si se reiniciaron correctamente
+ */
+export const reiniciarContadores = async () => {
+  try {
+    await AsyncStorage.removeItem(STORAGE_KEYS.USER_COUNTERS);
+    console.log('Se han reiniciado todos los contadores de usuarios');
+    return true;
+  } catch (error) {
+    console.error('Error al reiniciar contadores:', error);
+    return false;
+  }
+};
+
 // Exportación de todas las funciones
 export default {
   guardarRegistroPendiente,
@@ -237,5 +305,8 @@ export default {
   eliminarRegistrosPendientes,
   limpiarRegistrosPendientes,
   contarRegistrosPendientes,
-  repararDuplicadosPendientes
+  repararDuplicadosPendientes,
+  generarIdUnicoRegistro,
+  obtenerSiguienteContador,
+  reiniciarContadores
 };

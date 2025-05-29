@@ -51,13 +51,12 @@ if (Platform.OS !== 'web') {
   }
 }
 
-const RegistroBienesScreen = ({ navigation }) => {
+const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
   // Estados para los campos del formulario
   const [bienInformatico, setBienInformatico] = useState('');
   const [modelo, setModelo] = useState('');
   const [numeroSerie, setNumeroSerie] = useState('');
   const [numeroInventario, setNumeroInventario] = useState('');
-  const [contratoAdquisicion, setContratoAdquisicion] = useState('');
   
   const [fechaEntrega, setFechaEntrega] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -234,7 +233,6 @@ const RegistroBienesScreen = ({ navigation }) => {
     setModelo('');
     setNumeroSerie('');
     setNumeroInventario('');
-    setContratoAdquisicion('');
     setFechaEntrega(new Date());
     setResponsable('');
     setUbicacion('');
@@ -247,6 +245,13 @@ const RegistroBienesScreen = ({ navigation }) => {
   // Guardar localmente
   const guardarEnLocal = async (datos) => {
     try {
+      // Agregar información del usuario que está registrando
+      if (userData) {
+        datos.usuario_id = userData.id;
+        datos.usuario_nombre = userData.nombre;
+        datos.territorial = userData.territorial;
+      }
+      
       const guardado = await guardarRegistroPendiente(datos);
       if (guardado) {
         Alert.alert(
@@ -300,7 +305,6 @@ const RegistroBienesScreen = ({ navigation }) => {
       modelo,
       numero_serie: numeroSerie,
       numero_inventario: numeroInventario,
-      contrato_adquisicion: contratoAdquisicion,
       fecha_entrega: fechaEntrega.toISOString().split('T')[0],
       responsable,
       ubicacion,
@@ -317,6 +321,13 @@ const RegistroBienesScreen = ({ navigation }) => {
       // Si estamos en línea, intentamos enviar al servidor
       if (estaConectado) {
         try {
+          // Agregar información del usuario que está registrando
+          if (userData) {
+            formData.usuario_id = userData.id;
+            formData.usuario_nombre = userData.nombre;
+            formData.territorial = userData.territorial;
+          }
+          
           // Usar el servicio API para registrar el equipo
           const resultado = await registrarEquipo(formData);
           
@@ -637,6 +648,28 @@ const RegistroBienesScreen = ({ navigation }) => {
         style={styles.container}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
+          {/* Header con información del usuario logueado */}
+          {userData && (
+            <View style={styles.userInfoHeader}>
+              <View style={styles.userInfoContent}>
+                <Text style={styles.userInfoName}>
+                  Usuario: <Text style={styles.userInfoValue}>{userData.nombre}</Text>
+                </Text>
+                <Text style={styles.userInfoText}>
+                  Territorial: <Text style={styles.userInfoValue}>{userData.territorial}</Text>
+                </Text>
+                <Text style={styles.userInfoText}>
+                  ID: <Text style={styles.userInfoValue}>{userData.id}</Text>
+                </Text>
+              </View>
+              {onLogout && (
+                <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
+                  <Text style={styles.logoutButtonText}>Cerrar Sesión</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+          
           {/* Indicador del estado de conexión */}
           <View style={styles.connectionBar}>
             <View style={[styles.connectionIndicator, isOnline ? styles.onlineIndicator : styles.offlineIndicator]} />
@@ -710,17 +743,7 @@ const RegistroBienesScreen = ({ navigation }) => {
                 error={errors.numeroInventario ? true : false}
               />
               {errors.numeroInventario && <Text style={styles.errorText}>{errors.numeroInventario}</Text>}
-              
-              <TextInput
-                label="Contrato de Adquisición"
-                value={contratoAdquisicion}
-                onChangeText={setContratoAdquisicion}
-                style={styles.input}
-                mode="outlined"
-                outlineColor={styles.outlineColor?.color}
-                activeOutlineColor={styles.activeOutlineColor?.color}
-              />
-              
+                           
               <Divider style={styles.divider} />
               
               {/* Sección: Asignación y Ubicación */}

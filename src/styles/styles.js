@@ -116,6 +116,54 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
   },
+
+  // ========== ESTILOS PARA EL HEADER DEL USUARIO ==========
+  userInfoHeader: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  userInfoContent: {
+    flex: 1,
+  },
+  userInfoName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 3,
+  },
+  userInfoText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 2,
+  },
+  userInfoValue: {
+    fontWeight: '600',
+    color: '#9F2241',
+  },
+  logoutButton: {
+    backgroundColor: '#9F2241',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    elevation: 2,
+  },
+  logoutButtonText: {
+    color: '#BC955C',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  // ========================================================
   
   // Estilos adicionales para la funcionalidad offline y sincronización
 // Estilos modificados para la barra de conexión
@@ -236,6 +284,15 @@ offlineText: {
   syncSecondaryButtonLabel: {
     color: '#9F2241',
     fontSize: 12,
+  },
+  
+  // Botón para reparar duplicados
+  repairButton: {
+    marginTop: 5,
+  },
+  repairButtonLabel: {
+    fontSize: 10,
+    color: '#666',
   },
   
   // Estilos para los indicadores de registro pendiente
