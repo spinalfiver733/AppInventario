@@ -21,7 +21,6 @@ const generarFirmaRegistro = (registro) => {
     registro.fecha_entrega,
     registro.responsable
   ];
-  
   // Crear una cadena única usando estos campos
   return camposUnicos.filter(Boolean).join('|').toLowerCase();
 };

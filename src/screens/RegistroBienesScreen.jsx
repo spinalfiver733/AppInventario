@@ -16,6 +16,8 @@ import { Picker } from '@react-native-picker/picker';
 import { StatusBar } from 'expo-status-bar';
 
 import SearchableDropdown from '../components/SearchableDropdown';
+import EmployeeSearchableDropdown from '../components/EmployeeSearchableDropdown';
+import AreaSearchableDropdown from '../components/AreaSearchableDropdown';
 import { BIENES_INFORMATICOS } from '../data/bienesInformaticos';
 
 // Importamos el servicio de API
@@ -54,6 +56,8 @@ if (Platform.OS !== 'web') {
 const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
   // Estados para los campos del formulario
   const [bienInformatico, setBienInformatico] = useState('');
+  const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState(null);
+  const [areaAsignada, setAreaAsignada] = useState(null);
   const [modelo, setModelo] = useState('');
   const [numeroSerie, setNumeroSerie] = useState('');
   const [numeroInventario, setNumeroInventario] = useState('');
@@ -63,19 +67,19 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
   
   const [responsable, setResponsable] = useState('');
   const [ubicacion, setUbicacion] = useState('');
-  const [areaAsignada, setAreaAsignada] = useState('Sin asignar'); // Valor inicial no vacío
   
   const [estatus, setEstatus] = useState('');
   const [fechaCaptura, setFechaCaptura] = useState(new Date());
+
+  const [empleadoNuevo, setEmpleadoNuevo] = useState(null);
+  const [showAddEmployeeModal, setShowAddEmployeeModal] = useState(false);
+  const [tipoEmpleado, setTipoEmpleado] = useState('existente'); // 'existente' o 'nuevo'
   
   // Estado para mostrar el indicador de carga
   const [loading, setLoading] = useState(false);
   
   // Estado para validación de formulario
   const [errors, setErrors] = useState({});
-  
-  // Lista de responsables (debería venir de una API/base de datos)
-  const [responsables, setResponsables] = useState([]);
   
   // Estado para rastrear la conectividad a internet (real)
   const [isOnline, setIsOnline] = useState(true);
@@ -131,14 +135,7 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
         setShowSyncPanel(true);
       }
     });
-    
-    // Cargar los responsables (deberías cargarlos desde tu API)
-    setResponsables([
-      { NOMBRE: 'Juan Pérez', AREA: 'Sistemas' },
-      { NOMBRE: 'María López', AREA: 'Contabilidad' },
-      { NOMBRE: 'Carlos Rodríguez', AREA: 'Recursos Humanos' },
-    ]);
-    
+        
     // Verificar registros pendientes al iniciar
     actualizarContadorPendientes();
     
@@ -208,8 +205,8 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
       isValid = false;
     }
     
-    if (!responsable) {
-      formErrors.responsable = "Este campo es obligatorio";
+    if (!empleadoSeleccionado) {
+      formErrors.empleado = "Este campo es obligatorio";
       isValid = false;
     }
     
@@ -220,6 +217,11 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
     
     if (!estatus) {
       formErrors.estatus = "Este campo es obligatorio";
+      isValid = false;
+    }
+
+    if (!areaAsignada) {
+      formErrors.areaAsignada = "Este campo es obligatorio";
       isValid = false;
     }
 
@@ -236,7 +238,8 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
     setFechaEntrega(new Date());
     setResponsable('');
     setUbicacion('');
-    setAreaAsignada('Sin asignar');
+    setEmpleadoSeleccionado(null);
+    setAreaAsignada(null);
     setEstatus('');
     setFechaCaptura(new Date());
     setErrors({});
@@ -306,7 +309,7 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
       numero_serie: numeroSerie,
       numero_inventario: numeroInventario,
       fecha_entrega: fechaEntrega.toISOString().split('T')[0],
-      responsable,
+      empleado_seleccionado: empleadoSeleccionado,
       ubicacion,
       area_asignada: areaAsignada || 'Sin asignar', // Garantizar que nunca sea NULL
       estatus,
@@ -741,6 +744,7 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
                 outlineColor={errors.numeroInventario ? '#FF0000' : styles.outlineColor?.color}
                 activeOutlineColor={styles.activeOutlineColor?.color}
                 error={errors.numeroInventario ? true : false}
+                maxLength={16}
               />
               {errors.numeroInventario && <Text style={styles.errorText}>{errors.numeroInventario}</Text>}
                            
@@ -751,21 +755,30 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
               
               <Text style={styles.label}>Fecha de Entrega:</Text>
               {renderDatePicker()}
-              
-              <TextInput
-                label="Responsable (número de empleado)"
-                value={responsable}
-                onChangeText={(text) => {
-                  setResponsable(text);
-                  setAreaAsignada('Sin asignar'); // Usamos un valor por defecto en lugar de cadena vacía
-                }}
-                style={styles.input}
-                mode="outlined"
-                outlineColor={errors.responsable ? '#FF0000' : styles.outlineColor?.color}
-                activeOutlineColor={styles.activeOutlineColor?.color}
-                error={errors.responsable ? true : false}
-              />
-              {errors.responsable && <Text style={styles.errorText}>{errors.responsable}</Text>}
+                            
+              <View style={styles.pickerContainer}>
+                <Text style={styles.label}>Empleado:</Text>
+                <EmployeeSearchableDropdown
+                  selectedValue={empleadoSeleccionado}
+                  onValueChange={(no_emp) => setEmpleadoSeleccionado(no_emp)}
+                  placeholder="SELECCIONE EMPLEADO"
+                  style={styles.searchableDropdown}
+                  error={errors.empleado ? true : false}
+                />
+                {errors.empleado && <Text style={styles.errorText}>{errors.empleado}</Text>}
+              </View>
+
+              <View style={styles.pickerContainer}>
+                <Text style={styles.label}>Área Asignada:</Text>
+                <AreaSearchableDropdown
+                  selectedValue={areaAsignada}
+                  onValueChange={(num_area) => setAreaAsignada(num_area)}
+                  placeholder="SELECCIONE ÁREA"
+                  style={styles.searchableDropdown}
+                  error={errors.areaAsignada ? true : false}
+                />
+                {errors.areaAsignada && <Text style={styles.errorText}>{errors.areaAsignada}</Text>}
+              </View>
               
               <TextInput
                 label="Ubicación"

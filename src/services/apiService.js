@@ -140,7 +140,7 @@ export const registrarEquipo = async (datos) => {
       numero_inventario: datos.numero_inventario,
       contrato_adquisicion: datos.contrato_adquisicion || 'sin contrato de adquisición',
       fecha_entrega: datos.fecha_entrega,
-      responsable: datos.responsable,
+      responsable: datos.empleado_seleccionado, 
       ubicacion: datos.ubicacion,
       area_asignada: datos.area_asignada,
       estatus: datos.estatus,
@@ -171,78 +171,6 @@ export const registrarEquipo = async (datos) => {
     };
   } catch (error) {
     console.error("Error registrando equipo:", error);
-    return handleError(error);
-  }
-};
-
-/**
- * Actualiza un equipo existente
- * @param {number} id - ID del equipo a actualizar
- * @param {Object} datos - Datos actualizados
- * @returns {Promise<Object>} Respuesta con el resultado de la operación
- */
-export const actualizarEquipo = async (id, datos) => {
-  try {
-    // Formatear los datos según la estructura esperada por la API
-    const datosFormateados = {
-      bien_informatico: datos.bien_informatico,
-      modelo: datos.modelo,
-      numero_serie: datos.numero_serie,
-      numero_inventario: datos.numero_inventario,
-      contrato_adquisicion: datos.contrato_adquisicion || '',
-      fecha_entrega: datos.fecha_entrega,
-      responsable: datos.responsable,
-      ubicacion: datos.ubicacion,
-      area_asignada: datos.area_asignada,
-      estatus: datos.estatus,
-      fecha_captura: datos.fecha_captura,
-      id_registro: datos.id_registro || 'SIN-ID'
-    };
-    
-    // Basado en las convenciones de Laravel, probablemente la ruta de actualización es
-    const response = await axios.get(`${API_URL}/inventariocomputo/editar/${id}`, {
-      params: datosFormateados
-    });
-    
-    return {
-      success: true,
-      data: response.data,
-      error: null
-    };
-  } catch (error) {
-    // Si la primera forma falla, intentamos con otra convención común
-    try {
-      const response = await axios.get(`${API_URL}/inventariocomputo/actualizar/${id}`, {
-        params: datos
-      });
-      
-      return {
-        success: true,
-        data: response.data,
-        error: null
-      };
-    } catch (error2) {
-      return handleError(error);
-    }
-  }
-};
-
-/**
- * Elimina un equipo del inventario
- * @param {number} id - ID del equipo a eliminar
- * @returns {Promise<Object>} Respuesta con el resultado de la operación
- */
-export const eliminarEquipo = async (id) => {
-  try {
-    // Basado en las convenciones de Laravel, probablemente la ruta de eliminación es
-    const response = await axios.get(`${API_URL}/inventariocomputo/eliminar/${id}`);
-    
-    return {
-      success: true,
-      data: response.data,
-      error: null
-    };
-  } catch (error) {
     return handleError(error);
   }
 };
@@ -281,7 +209,7 @@ export const sincronizarRegistros = async (pendientes) => {
           numero_inventario: registro.numero_inventario,
           contrato_adquisicion: registro.contrato_adquisicion || '',
           fecha_entrega: registro.fecha_entrega,
-          responsable: registro.responsable,
+          responsable: datos.empleado_seleccionado,
           ubicacion: registro.ubicacion,
           area_asignada: registro.area_asignada || 'Sin asignar',
           estatus: registro.estatus || 'activo',
@@ -336,7 +264,5 @@ export default {
   getInventario,
   getEquipoById,
   registrarEquipo,
-  actualizarEquipo,
-  eliminarEquipo,
   sincronizarRegistros
 };

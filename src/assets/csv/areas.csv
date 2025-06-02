@@ -1,0 +1,236 @@
+NUM_AREA,AREAS
+5510000000,ALCALDIA
+5510100000,Secretaria Particular
+5510100001,J.U.D. de Control de Agenda y Logistica
+5510100002,J.U.D. de Correspondencia y Archivo
+5510200000,Direccion Ejecutiva de Comunicación Social e Imagen Institucional
+5510200001,J.U.D. de Comunicación Social
+5510200002,J.U.D. de Estrategia de Medios
+5510200003,J.U.D. de Desarrollo y Manejo de Imagen Institucional
+5510001000,Coordinacion de Asesores
+5510001010,"Asesor ""A"""
+5510001020,"Asesor ""B"""
+5510001030,"Asesor ""C"""
+5510001040,"Asesor ""D"""
+5510200000,DIRECCON GENERAL DE ASUNTOS JURIDICOS Y DE GOBIERNO
+5510201000,Coordinacion de Control y Seguimiento de Asuntos Juridicos y de Gobierno
+5510202000,Direccion de Asuntos Juridicos
+5510202010,Subdireccion Juridica
+5510202011,J.U.D. de Asuntos Legales
+5510202012,J.U.D. de Dictaminacion de Instrumentos Juridicos
+5510202013,J.U.D. de lo Consultivo y Control Territorial
+5510203000,Direccion de Vigilancia y Verificaciones
+5510203010,"Subdireccion de Verificacion, Monitoreo y Selección"
+5510203011,J.U.D. de Programas de Verificacion
+5510203012,J.U.D. de Monitoreo y Selección
+5510203020,Subdireccion de Vigilancia e Infracciones
+5510203021,J.U.D. Calificadora de Infracciones
+5510203022,J.U.D. de Vigilancia Administrativa
+5510204000,Direccion de Gobierno
+5510204010,Subdireccion de Gobierno
+5510204011,J.U.D. de Giros Mercantiles y Espectaculos Publicos
+5510204012,J.U.D. de Panteones y Juntas de Reclutamiento
+5510204013,J.U.D. de Control Vehicular
+5510204020,Subdireccion de Mercados y Via Publica
+5510204021,J.U.D. de Mercados
+5510204022,J.U.D. de Comercio en Via Publica
+5510300000,DIRECCION GENERAL DE ADMINISTRACION
+5510301000,Cooridnacion de Control y Seguimiento de Administracion
+5510302000,Direccion de Administracion de Capital Humano
+5510302010,Subdireccion de Relaciones Laborales y Capacitacion
+5510302011,J.U.D. de Relaciones Laborales y Prestaciones
+5510302012,J.U.D. de Capacitacion y Desarrollo de Personal
+5510302020,Subdireccion de Administracion de Personal
+5510302021,J.U.D. de Movimientos de Personal
+5510302022,J.U.D. de Nomina y Pagos
+5510303000,Direccion de Finanzas
+5510303010,Subdireccion de Tesoreria y Pagos
+5510303020,"Subdireccion de Planeacion, Programacion y Presupuesto"
+5510303021,J.U.D. de Programacion y Presupuesto
+5510303030,Subdireccion de Evaluacion y Control
+5510303031,J.U.D. de Contabilidad Gubernamental
+5510303032,J.U.D. de Administracion de Recursos de Aplicación Automatica
+5510304000,"Direccion de Recursos Materiales, Abastecimientos y Servicios"
+5510304010,Subdireccion de Recursos Materiales y Archivos
+5510304011,J.U.D. de Adquisiciones
+5510304012,J.U.D. de Almacenes e inventarios
+5510304013,J.U.D. de Archivos
+5510304020,Subdireccion de Servicios Generales
+5510304021,"J.U.D. de Siniestros, Servicios y Mantenimiento a Instalaciones"
+5510304022,J.U.D. de Mantenimiento Automotriz y Combustible
+5510400000,DIRECCION GENERAL DE OBRAS Y DESARROLLO URBANO
+5510401000,Coordinacion de Control y Seguimiento de Obras y Desarrollo Urbano
+5510402000,Direccion de Proyectos y Supervision de Obras
+5510402010,Subdireccion de Proyectos
+5510402011,J.U.D. de Ingenieria e Infraestructura
+5510402020,Subdireccion de Supervisor de Obras
+5510402021,J.U.D. de Vialidades Y Equipamiento Urbano
+5510402022,J.U.D. de Edificios Publicos
+5510403000,Direccion de Control de Obras y Desarrollo Urbano
+5510403010,Subdireccion de Licencias e Infraestructura Urbana
+5510403011,"J.U.D. de Manifestaciones, Licencias y Regularizacion de Construcciones"
+5510403011,J.U.D. de Alineamiento y Numeros Oficiales
+5510403020,Subdireccion de Control Tecnico de Obra
+5510403021,J.U.D. de Licitaciones y Contratacion
+5510403022,J.U.D. de Control de Avance de Obra
+5510500000,DIRECCION GENERAL DE DESARROLLO SOCIAL
+5510500010,Coordinacion de Vinculacion
+5510500020,Coordinacion de Apoyos para una Vivienda Digna
+5510500030,Coordinacion de control y Seguimiento de Desarrollo Social
+5510500031,J.U.D. de Apoyos Logisticos
+5510500032,J.U.D. de Control y Seguimiento de Centros Generadores
+5510501000,Direccion de Servicios Medicos y Equidad Social
+5510501010,Subdireccion de Igualdad Social
+5510501011,J.U.D. de Atencion Prioritaria a Grupos Vulnerables
+5510501012,J.U.D. de Pueblos Originarios
+5510501013,J.U.D. de Derechos Humanos
+5510501014,J.U.D. de Atencion a la Juventud
+5510501015,J.U.D. de Diversidad Sexual
+5510501016,J.U.D. de Genero e Igualdad Sustantiva
+5510501020,Subdireccion de Servicios de Salud
+5510502000,Direccion de Educacion
+5510502010,Subdireccion de Apoyos Educativos
+5510502011,J.U.D. de Centros de Atencion y Cuidado Infantil
+5510502012,J.U.D. de Apoyos Escolares
+5510502013,J.U.D. de Fomento a la Lectura
+5510600000,DIRECCION GENERAL DE SERVICIOS URBANOS
+5510600001,J.U.D. de Concursos y Contratos de Obra Publica
+5510601000,Coordinacion de Control y Seguimiento de Servicios Urbanos
+5510602000,Direccion de Desarrollo de la Zona Centro y Mantenimiento a Monumentos Historicos
+5510602001,J.U.D. de Mantenimiento al Patrimonio Historico
+5510603000,Direccion de Ecologia y Desarrollo Sustentable
+5510603010,Surdireccion de Conservacion del Medio Ambiente
+5510603011,J.U.D. de Ecologia
+5510603012,J.U.D. de Educacion Ambiental y Cultura del Agua
+5510604000,Direccion de Servicios Publicos
+5510604001,J.U.D. de Supervision de Obra Publica
+5510604010,Subdireccion de Manejo y Control de Residuos Solidos
+5510604011,J.U.D. de Limpia y Separacion de Residuos Solidos
+5510604020,Subdireccion de Operación de Infraestructura
+5510604021,J.U.D. de Operación Hidraulica
+5510604022,J.U.D. de Obras Viales
+5510604023,J.U.D. de Alumbrado Publico
+5510604024,J.U.D. de Señalizacion y Nomenclatura
+5510605000,Direccion de Mejoramiento Urbano
+5510605010,Subdireccion de Areas Verdes
+5510605011,J.U.D. de Parques y Jardines
+5510605020,Subdireccion de Conservacion de Espacios Publicos
+5510605021,J.U.D. de Conservacion de Espacios Publicos
+5510605022,J.U.D. de Mejoramientos de la Imagen Urbana
+5510700000,DIRECCION GENERAL DE PARTICIPACION CIUDADANA Y GESTION SOCIAL
+5510701000,Direccion de Programas Comunitarios e Iniciativas Ciudadanas
+5510701010,Subdireccion de Programas Comunitarios
+5510701011,"J.U.D. de Iniciativas, Colaboraciones y Consulta Ciudadana"
+5510701012,J.U.D. de Gestion y Atencion a la Vivienda
+5510701013,J.U.D. de Cultura Civica
+5510702000,Direccion de Participacion y Vinculacion Ciudadana
+5510702100,SUBDIRECCION DE ENLACE CIUDADANO Y GESTION SOCIAL
+5510702101,J.U.D. de Promocion de la Participacion Ciudadana
+5510702102,J.U.D. de Vinculacion y Gestion Ciudadana
+5510800000,DIRECCION GENERAL DE INTEGRACION TERRITORIAL
+5510800010,Subdireccion de Orientacion a la Gestion Territorial de Obras y Servicios
+5510800011,J.U.D. de Analisis de la Demanda Ciudadana
+5510800012,J.U.D. de Infraestructura Territorial
+5510800020,Subdireccion de Asistencia a las Unidades Departamentales Juridicas Territoriales
+5510800021,J.U.D. de Programas Especiales
+5510800022,J.U.D. de Analisis de Asuntos Juridicos Territoriales
+5510800030,Subdireccion de Apoyo a las Unidades Departamentales de Desarrollo Social
+5510800031,J.U.D. de Seguimiento de Programas Sociales en Direcciones Territoriales
+5510800032,J.U.D. de Atencion a Audiencias Territoriales
+5510801000,Coordinacion de Control y Seguimiento de Integracion Territorial
+5510800100,Direccion Territorial Zona 1
+5510800101,J.U.D. de Orientacion Juridica Zona 1
+5510800102,J.U.D. de Obras y Servicios Zona 1
+5510800103,J.U.D. de Desarrollo Social Zona 1
+5510800104,J.U.D. de Administracion Zona 1
+5510800200,Direccion Territorial Zona 2
+5510800201,J.U.D. de Orientacion Juridica Zona 2
+5510800202,J.U.D. de Obras y Servicios Zona 2
+5510800203,J.U.D. de Desarrollo Social Zona 2
+5510800204,J.U.D. de Administracion Zona 2
+5510800300,Direccion Territorial Zona 3
+5510800301,J.U.D. de Orientacion Juridica Zona 3
+5510800302,J.U.D. de Obras y Servicios Zona 3
+5510800303,J.U.D. de Desarrollo Social Zona 3
+5510800304,J.U.D. de Administracion Zona 3
+5510800400,Direccion Territorial Zona 4
+5510800401,J.U.D. de Orientacion Juridica Zona 4
+5510800402,J.U.D. de Obras y Servicios Zona 4
+5510800403,J.U.D. de Desarrollo Social Zona 4
+5510800404,J.U.D. de Administracion Zona 4
+5510800500,Direccion Territorial Zona 5
+5510800501,J.U.D. de Orientacion Juridica Zona 5
+5510800502,J.U.D. de Obras y Servicios Zona 5
+5510800503,J.U.D. de Desarrollo Social Zona 5
+5510800504,J.U.D. de Administracion Zona 5
+5510800600,Direccion Territorial Zona 6
+5510800601,J.U.D. de Orientacion Juridica Zona 6
+5510800602,J.U.D. de Obras y Servicios Zona 6
+5510800603,J.U.D. de Desarrollo Social Zona 6
+5510800604,J.U.D. de Administracion Zona 6
+5510800700,Direccion Territorial Zona 7
+5510800701,J.U.D. de Orientacion Juridica Zona 7
+5510800702,J.U.D. de Obras y Servicios Zona 7
+5510800703,J.U.D. de Desarrollo Social Zona 7
+5510800704,J.U.D. de Administracion Zona 7
+5510800800,Direccion Territorial Zona 8
+5510800801,J.U.D. de Orientacion Juridica Zona 8
+5510800802,J.U.D. de Obras y Servicios Zona 8
+5510800803,J.U.D. de Desarrollo Social Zona 8
+5510800804,J.U.D. de Administracion Zona 8
+5510800900,Direccion Territorial Zona 9
+5510800901,J.U.D. de Orientacion Juridica Zona 9
+5510800902,J.U.D. de Obras y Servicios Zona 9
+5510800903,J.U.D. de Desarrollo Social Zona 9
+5510800904,J.U.D. de Administracion Zona 9
+5510801000,Direccion Territorial Zona 10
+5510801001,J.U.D. de Orientacion Juridica Zona 10
+5510801002,J.U.D. de Obras y Servicios Zona 10
+5510801003,J.U.D. de Desarrollo Social Zona 10
+5510801004,J.U.D. de Administracion Zona 10
+5510910000,"DIRECCION EJECUTIVA TRANSPARENCIA, ACCESO A LA INFORMACION Y PLANEACION DEL DESARROLLO"
+5510910010,Subdireccion de Planeacion y Evaluacion
+5510910011,J.U.D. de Evaluacion de Programas
+5510910012,J.U.D. de Proyectos Especiales
+5510910020,Subdireccion de Transparencia y Acceso a la Informacion
+5510910030,Coordinacion del Programa de Supervision a la Gestion
+5510920000,DIRECCION EJECUTIVA DE MEJORA CONTINUA A LA GESTION GUBERNAMENTAL
+5510920010,Coordinacion del Centro de Servicios y Atencion Ciudadana
+5510920020,Cooridnacion de Ventanilla Unica de Trámites
+5510920030,Coordinacion de Modernizacion Administrativa
+5510920031,J.U.D. de Arquitectura Organizacional
+5510920040,Coordinacion de Tecnologias de la Informacion
+5510920041,J.U.D. de Desarrollo de Sistemas
+5510920042,J.U.D. de Mantenimiento y Soporte Tecnico
+5510930000,DIRECCION EJECUTIVA DE DESARROLLO ECONOMICO
+5510930010,Subdireccion de Fomento a la Micro y Pequeña Empresa
+5510930011,J.U.D. de Abasto y Comercializacion
+5510930020,"Subdireccion de Politicas, Planes y Programas"
+5510930021,J.U.D. de Evaluacion y Seguimiento
+5510930022,J.U.D. de Programas y Proyectos de Inversion
+5510940000,DIRECCION EJECUTIVA DE FOMENTO COOPERATIVO
+5510940010,Subdireccion de Capacitacion para el Desarrollo de Empresas Sociales
+5510940020,Subdireccion de Fomento Cooperativo
+5510940021,J.U.D. de Implementacion de Proyectos Comunitarios
+5510940022,J.U.D. de Vinculacion con Empresas Sociales
+5510950000,"DIRECCION EJECUTIVA DE SEGURIDAD CIUDADANA, GESTION INTEGRAL DE RIESGOS Y PROTECCION CIVIL"
+5510950010,Subdireccion de Prevencion del Delito
+5510950011,J.U.D. de Programas de Prevencion
+5510950020,Subdireccion de Operaciones de Seguridad Ciudadana
+5510950021,J.U.D. de Apoyo Vial
+5510950022,J.U.D. de Coordinacion Sectorial
+5510951000,Coordinacion de Control y Seguimiento de Seguridad Ciudadana y Gestión Integral de Riesgos
+5510952000,Direccion de la Unidad Gestión Integral de Riesgos y Proteccion Civil
+5510952001,J.U.D. de Gestión Integral y Atencion a Emergencias
+5510952002,J.U.D. de Programas de Prevencion y Atencion a Desastres
+5510960000,"DIRECCION EJECUTIVA DE CULTURA, RECREACION Y DEPORTE"
+5510961000,Coordinacion de Control y Seguimiento de Cultura Recreacion y Deporte
+5510962000,Coordinacion del Centro Cultural Futurama
+5510963000,Direccion de Cultura y Recreacion
+5510963010,Subdireccion de Actividades Culturales y Turismos
+5510963011,J.U.D. de Turismo
+5510963012,J.U.D. de Centros Culturales
+5510964000,Direccion de Deporte
+5510964010,Subdireccion de Promocion Deportiva
+5510964011,J.U.D. de Actividades Deportivas
+5510964012,J.U.D. de Centros Deportivos
