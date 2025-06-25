@@ -92,7 +92,7 @@ const AddEmployeeModal = ({
         id: `nuevo_${Date.now()}`, // ID único temporal
         nombre: nombreFormateado,
         esNuevo: true,
-        label: `➕ ${nombreFormateado} (Agregado manualmente)`,
+        label: `${nombreFormateado} (Agregado manualmente)`,
         value: nombreFormateado
       };
 
@@ -203,7 +203,7 @@ const AddEmployeeModal = ({
                 <View style={styles.previewEmployee}>
                   <MaterialIcons name="person-add" size={20} color="#BC955C" />
                   <Text style={styles.previewText}>
-                    ➕ {nombreEmpleado.trim().toUpperCase()} (Agregado manualmente)
+                    {nombreEmpleado.trim().toUpperCase()} (Agregado manualmente)
                   </Text>
                 </View>
               </View>

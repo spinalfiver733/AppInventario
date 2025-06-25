@@ -15,11 +15,12 @@ const generarFirmaRegistro = (registro) => {
   // Seleccionar campos clave que identifican unívocamente a un registro
   const camposUnicos = [
     registro.bien_informatico,
-    registro.modelo,
+    registro.modelo, // Ya viene concatenado con marca desde el componente
     registro.numero_serie,
     registro.numero_inventario,
     registro.fecha_entrega,
-    registro.responsable
+    registro.responsable || registro.empleado_seleccionado, // Manejar ambos casos
+    registro.contrato_adquisicion // Incluir empleados nuevos
   ];
   // Crear una cadena única usando estos campos
   return camposUnicos.filter(Boolean).join('|').toLowerCase();

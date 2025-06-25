@@ -14,6 +14,7 @@ import {
 import { Divider, IconButton } from 'react-native-paper';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useEmployeeSearch } from '../hooks/useEmployeeSearch';
+import AddEmployeeModal from './AddEmployeeModal';
 
 /**
  * Componente de Dropdown con búsqueda SQLite para empleados
@@ -21,6 +22,7 @@ import { useEmployeeSearch } from '../hooks/useEmployeeSearch';
  * @param {Object} props
  * @param {number} props.selectedValue - Número de empleado seleccionado
  * @param {function} props.onValueChange - Función a llamar cuando se selecciona un empleado
+ * @param {function} props.onNewEmployee - Función a llamar cuando se agrega un empleado nuevo
  * @param {string} props.placeholder - Texto placeholder
  * @param {Object} props.style - Estilos adicionales
  * @param {Object} props.labelStyle - Estilos para el texto del label
@@ -31,6 +33,7 @@ import { useEmployeeSearch } from '../hooks/useEmployeeSearch';
 const EmployeeSearchableDropdown = ({
   selectedValue,
   onValueChange,
+  onNewEmployee,
   placeholder = "Seleccione un empleado",
   style = {},
   labelStyle = {},
@@ -42,12 +45,15 @@ const EmployeeSearchableDropdown = ({
   const [modalVisible, setModalVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [showAddEmployeeModal, setShowAddEmployeeModal] = useState(false);
+  const [employees, setEmployees] = useState([]);         // Lista para mostrar
+  const [employeesList, setEmployeesList] = useState([]); // Lista combinada (BD + nuevos)
   
   // Hook personalizado para búsqueda
   const {
     isLoading,
     isSearching,
-    employees,
+    employees: dbEmployees,
     error: dbError,
     isReady,
     searchEmployees,
@@ -61,15 +67,27 @@ const EmployeeSearchableDropdown = ({
   useEffect(() => {
     const loadSelectedEmployee = async () => {
       if (selectedValue && isReady) {
+        // Primero buscar en empleados de la BD
         const employee = await getEmployeeByNumber(selectedValue);
-        setSelectedEmployee(employee);
+        if (employee) {
+          setSelectedEmployee(employee);
+        } else {
+          // Si no se encuentra por número, podría ser un empleado nuevo
+          // Buscar en la lista local de empleados nuevos
+          const foundNewEmployee = employeesList.find(emp => 
+            emp.esNuevo && emp.value === selectedValue
+          );
+          if (foundNewEmployee) {
+            setSelectedEmployee(foundNewEmployee);
+          }
+        }
       } else {
         setSelectedEmployee(null);
       }
     };
 
     loadSelectedEmployee();
-  }, [selectedValue, isReady, getEmployeeByNumber]);
+  }, [selectedValue, isReady, getEmployeeByNumber, employeesList]);
 
   // Búsqueda con debounce
   useEffect(() => {
@@ -81,8 +99,22 @@ const EmployeeSearchableDropdown = ({
     }
 
     // Nueva búsqueda con delay
-    searchTimeoutRef.current = setTimeout(() => {
-      searchEmployees(searchText, searchLimit);
+    searchTimeoutRef.current = setTimeout(async () => {
+      const dbEmployees = await searchEmployees(searchText, searchLimit);
+      
+      // Combinar empleados de BD con empleados nuevos locales si hay texto de búsqueda
+      if (searchText.trim()) {
+        const filteredNewEmployees = employeesList.filter(emp => 
+          emp.esNuevo && 
+          emp.nombre.toLowerCase().includes(searchText.toLowerCase())
+        );
+        
+        // Combinar ambas listas (nuevos al principio)
+        const combinedEmployees = [...filteredNewEmployees, ...dbEmployees];
+        setEmployees(combinedEmployees);
+      } else {
+        setEmployees(dbEmployees);
+      }
     }, 300); // 300ms de delay
 
     // Cleanup
@@ -91,14 +123,44 @@ const EmployeeSearchableDropdown = ({
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchText, isReady, searchEmployees, searchLimit]);
+  }, [searchText, isReady, searchEmployees, searchLimit, employeesList]);
 
   // Manejar selección de empleado
   const handleSelect = (employee) => {
     setSelectedEmployee(employee);
-    onValueChange(employee.value); // Pasar solo el no_emp
+    
+    // Determinar qué valor pasar según el tipo de empleado
+    if (employee.esNuevo) {
+      // Para empleados nuevos, pasar el nombre completo
+      onValueChange(employee.value);
+      // Notificar que es un empleado nuevo si hay callback
+      if (onNewEmployee) {
+        onNewEmployee(employee);
+      }
+    } else {
+      // Para empleados de BD, pasar el número de empleado
+      onValueChange(employee.value);
+    }
+    
     setModalVisible(false);
     setSearchText('');
+  };
+
+  // Manejar guardado de empleado nuevo
+  const handleSaveNewEmployee = (newEmployee) => {
+    // Agregar a la lista local
+    setEmployeesList(prev => [...prev, newEmployee]);
+    
+    // Seleccionar automáticamente el nuevo empleado
+    handleSelect(newEmployee);
+    
+    // Cerrar modal de agregar empleado
+    setShowAddEmployeeModal(false);
+  };
+
+  // Abrir modal para agregar empleado
+  const handleAddNewEmployee = () => {
+    setShowAddEmployeeModal(true);
   };
 
   // Manejar apertura del modal
@@ -126,8 +188,23 @@ const EmployeeSearchableDropdown = ({
       onPress={() => handleSelect(item)}
     >
       <View style={styles.employeeInfo}>
-        <Text style={styles.employeeNumber}>{item.value}</Text>
-        <Text style={styles.employeeName}>{item.nombre}</Text>
+        <View style={styles.employeeHeader}>
+          {item.esNuevo ? (
+            <MaterialIcons name="person-add" size={20} color="#BC955C" />
+          ) : (
+            <MaterialIcons name="business" size={20} color="#4CAF50" />
+          )}
+          <Text style={[
+            styles.employeeNumber,
+            item.esNuevo ? styles.newEmployeeNumber : null
+          ]}>
+            {item.esNuevo ? 'NUEVO' : item.value}
+          </Text>
+        </View>
+        <Text style={styles.employeeName}>{item.nombre || item.label}</Text>
+        {item.esNuevo && (
+          <Text style={styles.newEmployeeTag}>(Agregado manualmente)</Text>
+        )}
       </View>
       {item.value === selectedValue && (
         <MaterialIcons name="check" size={20} color="#BC955C" />
@@ -236,17 +313,34 @@ const EmployeeSearchableDropdown = ({
                 </Text>
               </View>
             ) : employees.length > 0 ? (
-              <FlatList
-                data={employees}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={renderEmployee}
-                ItemSeparatorComponent={() => <Divider />}
-                style={styles.listContainer}
-                keyboardShouldPersistTaps="handled"
-                initialNumToRender={20}
-                maxToRenderPerBatch={20}
-                windowSize={10}
-              />
+              <>
+                <FlatList
+                  data={employees}
+                  keyExtractor={(item) => item.id.toString()}
+                  renderItem={renderEmployee}
+                  ItemSeparatorComponent={() => <Divider />}
+                  style={styles.listContainer}
+                  keyboardShouldPersistTaps="handled"
+                  initialNumToRender={20}
+                  maxToRenderPerBatch={20}
+                  windowSize={10}
+                />
+                
+                {/* Botón para agregar nuevo empleado */}
+                <View style={styles.addEmployeeContainer}>
+                  <Divider style={styles.addEmployeeDivider} />
+                  <TouchableOpacity
+                    style={styles.addEmployeeButton}
+                    onPress={handleAddNewEmployee}
+                  >
+                    <MaterialIcons name="person-add" size={24} color="#BC955C" />
+                    <Text style={styles.addEmployeeText}>
+                      ¿No encuentras al empleado? Agregar nuevo
+                    </Text>
+                    <MaterialIcons name="arrow-forward" size={20} color="#BC955C" />
+                  </TouchableOpacity>
+                </View>
+              </>
             ) : isSearching ? (
               <View style={styles.emptyContainer}>
                 <ActivityIndicator size="large" color="#BC955C" />
@@ -259,11 +353,30 @@ const EmployeeSearchableDropdown = ({
                   No se encontraron empleados{'\n'}
                   para "{searchText}"
                 </Text>
+                
+                {/* Botón para agregar nuevo empleado cuando no hay resultados */}
+                <TouchableOpacity
+                  style={styles.addEmployeeButtonNoResults}
+                  onPress={handleAddNewEmployee}
+                >
+                  <MaterialIcons name="person-add" size={24} color="#BC955C" />
+                  <Text style={styles.addEmployeeTextNoResults}>
+                    Agregar "{searchText}" como nuevo empleado
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
         </SafeAreaView>
       </Modal>
+
+      {/* Modal para agregar empleado nuevo */}
+      <AddEmployeeModal
+        visible={showAddEmployeeModal}
+        onClose={() => setShowAddEmployeeModal(false)}
+        onSave={handleSaveNewEmployee}
+        initialName={searchText.trim()}
+      />
     </View>
   );
 };
@@ -374,15 +487,72 @@ const styles = StyleSheet.create({
   employeeInfo: {
     flex: 1,
   },
+  employeeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
   employeeNumber: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#4CAF50',
+    marginLeft: 6,
+  },
+  newEmployeeNumber: {
     color: '#BC955C',
   },
   employeeName: {
     fontSize: 14,
     color: '#666',
     marginTop: 2,
+    marginLeft: 26,
+  },
+  newEmployeeTag: {
+    fontSize: 12,
+    color: '#BC955C',
+    fontStyle: 'italic',
+    marginTop: 2,
+    marginLeft: 26,
+  },
+  addEmployeeContainer: {
+    marginTop: 10,
+  },
+  addEmployeeDivider: {
+    marginVertical: 10,
+  },
+  addEmployeeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: 'rgba(188, 149, 92, 0.1)',
+    borderRadius: 8,
+    marginHorizontal: 10,
+    marginBottom: 10,
+  },
+  addEmployeeText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#BC955C',
+    fontWeight: '500',
+    marginHorizontal: 10,
+  },
+  addEmployeeButtonNoResults: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: 'rgba(188, 149, 92, 0.1)',
+    borderRadius: 8,
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: '#BC955C',
+    borderStyle: 'dashed',
+  },
+  addEmployeeTextNoResults: {
+    fontSize: 14,
+    color: '#BC955C',
+    fontWeight: '500',
+    marginLeft: 10,
+    textAlign: 'center',
   },
   emptyContainer: {
     flex: 1,

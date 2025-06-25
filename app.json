@@ -46,7 +46,9 @@
             "buildToolsVersion": "33.0.0"
           }
         }
-      ]
+      ],
+      "expo-sqlite",
+      "expo-asset"
     ]
   }
 }

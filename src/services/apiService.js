@@ -12,18 +12,18 @@ const API_URL = 'http://www.intranet.gamadero.cdmx.gob.mx/INVENTARIOGAM/public/a
  */
 const handleError = (error) => {
   console.error('Error de API:', error);
-  
+
   let errorMessage = 'Error al conectar con la API';
   let errorDetails = null;
-  
+
   if (error.response) {
     console.log('Datos del error:', error.response.data);
     console.log('Estado del error:', error.response.status);
     console.log('Detalles completos del error:', JSON.stringify(error.response.data, null, 2));
-    
+
     errorMessage = `Error ${error.response.status}: ${error.response.statusText || 'Error del servidor'}`;
     errorDetails = error.response.data;
-    
+
     // Mostrar detalles adicionales para errores
     if (error.response.status === 500) {
       console.log('Error 500 (Error interno del servidor)');
@@ -31,7 +31,7 @@ const handleError = (error) => {
         console.log('Mensaje del error:', error.response.data.message);
       }
     }
-    
+
     // Mostrar errores de validación
     if (error.response.data && error.response.data.errors) {
       console.log('Errores de validación:', error.response.data.errors);
@@ -49,7 +49,7 @@ const handleError = (error) => {
     console.log('Mensaje de error:', error.message);
     errorMessage = error.message || 'Error desconocido';
   }
-  
+
   return {
     success: false,
     data: null,
@@ -82,11 +82,11 @@ export const checkConnection = async () => {
 export const getInventario = async () => {
   try {
     console.log('Obteniendo lista de inventario...');
-    
+
     const response = await axios.get(`${API_URL}/inventariocomputo`);
-    
+
     console.log('Datos recibidos:', response.data);
-    
+
     return {
       success: true,
       data: response.data,
@@ -105,7 +105,7 @@ export const getInventario = async () => {
 export const getEquipoById = async (id) => {
   try {
     const response = await axios.get(`${API_URL}/inventariocomputo/${id}`);
-    
+
     return {
       success: true,
       data: response.data,
@@ -124,31 +124,40 @@ export const getEquipoById = async (id) => {
 export const registrarEquipo = async (datos) => {
   try {
     console.log('Registrando nuevo equipo...');
-    
+
     // Si no tiene un ID de registro ya generado (desde offline), generarlo ahora
     if (!datos.id_registro && datos.usuario_id) {
       datos.id_registro = await generarIdUnicoRegistro(datos.usuario_id);
       console.log(`ID único generado para el registro: ${datos.id_registro}`);
     }
-    
+
     // Formatear los datos según la estructura esperada por la API
     const datosFormateados = {
       id_registro: datos.id_registro || 'SIN-ID',
       bien_informatico: datos.bien_informatico,
-      modelo: datos.modelo,
+      modelo: datos.modelo, // Ya viene concatenado desde el componente
       numero_serie: datos.numero_serie,
       numero_inventario: datos.numero_inventario,
-      contrato_adquisicion: datos.contrato_adquisicion || 'sin contrato de adquisición',
       fecha_entrega: datos.fecha_entrega,
-      responsable: datos.empleado_seleccionado, 
       ubicacion: datos.ubicacion,
-      area_asignada: datos.area_asignada,
-      estatus: datos.estatus,
+      area_asignada: datos.area_asignada || 'Sin asignar',
+      estatus: datos.estatus || 'activo',
       fecha_captura: datos.fecha_captura
     };
-    
+
+
+    if (datos.contrato_adquisicion && datos.contrato_adquisicion !== 'sin contrato de adquisición') {
+      datosFormateados.contrato_adquisicion = datos.contrato_adquisicion;
+      datosFormateados.responsable = 'EMPLEADO_NUEVO';
+      console.log('API: Usando empleado nuevo:', datos.contrato_adquisicion);
+    } else {
+      datosFormateados.responsable = datos.empleado_seleccionado;
+      datosFormateados.contrato_adquisicion = 'sin contrato de adquisición';
+      console.log('API: Usando empleado existente:', datos.empleado_seleccionado);
+    }
+
     console.log('Enviando datos al servidor:', datosFormateados);
-    
+
     // Usar exactamente la ruta definida en routes/api.php
     const response = await axios.post(
       `${API_URL}/inventariocomputo/Create`, // Nota: 'Create' con C mayúscula como está en tu ruta
@@ -160,9 +169,9 @@ export const registrarEquipo = async (datos) => {
         }
       }
     );
-    
+
     console.log('Respuesta del servidor:', response.data);
-    
+
     return {
       success: true,
       data: response.data,
@@ -183,12 +192,12 @@ export const registrarEquipo = async (datos) => {
 export const sincronizarRegistros = async (pendientes) => {
   try {
     console.log(`Iniciando sincronización de ${pendientes.length} registros pendientes`);
-    
+
     let sincronizados = 0;
     let fallidos = 0;
     const procesados = new Set(); // Para evitar procesar duplicados
     const idsAEliminar = []; // IDs de registros sincronizados exitosamente
-    
+
     // Procesar cada registro pendiente
     for (const registro of pendientes) {
       // Evitar procesar el mismo registro más de una vez
@@ -196,29 +205,29 @@ export const sincronizarRegistros = async (pendientes) => {
         console.log(`Registro ${registro.tempId} ya procesado, omitiendo`);
         continue;
       }
-      
+
       try {
         console.log(`Sincronizando registro: ${registro.tempId}`);
-        
+
         // Adaptar los datos al formato esperado por la API
         const datosFormateados = {
           id_registro: registro.id_registro || 'SIN-ID',
           bien_informatico: registro.bien_informatico,
-          modelo: registro.modelo,
+          modelo: registro.modelo, // Ya viene concatenado desde el componente
           numero_serie: registro.numero_serie,
           numero_inventario: registro.numero_inventario,
           contrato_adquisicion: registro.contrato_adquisicion || '',
           fecha_entrega: registro.fecha_entrega,
-          responsable: datos.empleado_seleccionado,
+          responsable: registro.empleado_seleccionado,
           ubicacion: registro.ubicacion,
           area_asignada: registro.area_asignada || 'Sin asignar',
           estatus: registro.estatus || 'activo',
           fecha_captura: registro.fecha_captura
         };
-        
+
         // Intentar registrar el equipo
         const resultado = await registrarEquipo(datosFormateados);
-        
+
         if (resultado.success) {
           console.log(`Registro ${registro.tempId} sincronizado exitosamente`);
           sincronizados++;
@@ -228,16 +237,16 @@ export const sincronizarRegistros = async (pendientes) => {
           console.error(`Error sincronizando registro ${registro.tempId}:`, resultado.error);
           fallidos++;
         }
-        
+
         // Pequeña pausa entre solicitudes para evitar sobrecargar el servidor
         await new Promise(resolve => setTimeout(resolve, 300));
-        
+
       } catch (error) {
         console.error(`Error inesperado sincronizando registro ${registro.tempId}:`, error);
         fallidos++;
       }
     }
-    
+
     return {
       success: sincronizados > 0,
       sincronizados,
@@ -246,7 +255,7 @@ export const sincronizarRegistros = async (pendientes) => {
       failedCount: fallidos,      // Para compatibilidad con código existente
       idsEliminados: idsAEliminar // Añadimos los IDs eliminados para referencia
     };
-    
+
   } catch (error) {
     console.error('Error general en sincronización:', error);
     return {

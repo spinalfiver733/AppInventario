@@ -21,16 +21,16 @@ import AreaSearchableDropdown from '../components/AreaSearchableDropdown';
 import { BIENES_INFORMATICOS } from '../data/bienesInformaticos';
 
 // Importamos el servicio de API
-import { 
-  registrarEquipo, 
-  sincronizarRegistros, 
-  checkConnection 
+import {
+  registrarEquipo,
+  sincronizarRegistros,
+  checkConnection
 } from '../services/apiService';
 
 // Importamos el servicio de almacenamiento local
-import { 
-  guardarRegistroPendiente, 
-  obtenerRegistrosPendientes, 
+import {
+  guardarRegistroPendiente,
+  obtenerRegistrosPendientes,
   contarRegistrosPendientes,
   eliminarRegistrosPendientes,
   repararDuplicadosPendientes
@@ -58,38 +58,39 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
   const [bienInformatico, setBienInformatico] = useState('');
   const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState(null);
   const [areaAsignada, setAreaAsignada] = useState(null);
+  const [marca, setMarca] = useState('');
+  const [empleadoNuevo, setEmpleadoNuevo] = useState(null);
+  const [tipoEmpleado, setTipoEmpleado] = useState('existente'); // 'existente' o 'nuevo'
   const [modelo, setModelo] = useState('');
   const [numeroSerie, setNumeroSerie] = useState('');
   const [numeroInventario, setNumeroInventario] = useState('');
-  
+
   const [fechaEntrega, setFechaEntrega] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  
+
   const [responsable, setResponsable] = useState('');
   const [ubicacion, setUbicacion] = useState('');
-  
+
   const [estatus, setEstatus] = useState('');
   const [fechaCaptura, setFechaCaptura] = useState(new Date());
 
-  const [empleadoNuevo, setEmpleadoNuevo] = useState(null);
   const [showAddEmployeeModal, setShowAddEmployeeModal] = useState(false);
-  const [tipoEmpleado, setTipoEmpleado] = useState('existente'); // 'existente' o 'nuevo'
-  
+
   // Estado para mostrar el indicador de carga
   const [loading, setLoading] = useState(false);
-  
+
   // Estado para validación de formulario
   const [errors, setErrors] = useState({});
-  
+
   // Estado para rastrear la conectividad a internet (real)
   const [isOnline, setIsOnline] = useState(true);
-  
+
   // Estado para contar registros pendientes
   const [pendingCount, setPendingCount] = useState(0);
-  
+
   // Estado para mostrar el panel de sincronización
   const [showSyncPanel, setShowSyncPanel] = useState(false);
-  
+
   // Estado para sincronización en progreso
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -99,18 +100,18 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
       try {
         // Verificar y reparar duplicados al inicio
         const resultadoReparacion = await repararDuplicadosPendientes();
-        
+
         if (resultadoReparacion.eliminados > 0) {
           console.log(`Se eliminaron ${resultadoReparacion.eliminados} registros duplicados al iniciar`);
         }
-        
+
         // Actualizar contador de pendientes después de reparación
         await actualizarContadorPendientes();
-        
+
         // Verificar estado inicial de la conexión
         const estaConectado = await checkConnection();
         setIsOnline(estaConectado);
-        
+
         // Si hay conexión y registros pendientes, mostrar panel de sincronización
         if (estaConectado && pendingCount > 0) {
           setShowSyncPanel(true);
@@ -119,7 +120,7 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
         console.error('Error al inicializar la aplicación:', error);
       }
     };
-    
+
     inicializarApp();
   }, []);
 
@@ -129,33 +130,33 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
     const unsubscribeNetInfo = NetInfo.addEventListener(state => {
       const isConnected = state.isConnected && state.isInternetReachable;
       setIsOnline(isConnected);
-      
+
       // Si recuperamos la conexión y hay registros pendientes, mostrar panel
       if (isConnected && pendingCount > 0) {
         setShowSyncPanel(true);
       }
     });
-        
+
     // Verificar registros pendientes al iniciar
     actualizarContadorPendientes();
-    
+
     // Actualizamos el contador cada vez que la pantalla obtiene el foco
     const unsubscribeNavigation = navigation?.addListener?.('focus', () => {
       actualizarContadorPendientes();
     });
-    
+
     return () => {
       unsubscribeNetInfo();
       if (unsubscribeNavigation) unsubscribeNavigation();
     };
   }, [navigation, pendingCount]);
-  
+
   // Actualizar el contador de registros pendientes
   const actualizarContadorPendientes = async () => {
     try {
       const count = await contarRegistrosPendientes();
       setPendingCount(count);
-      
+
       // Mostrar panel de sincronización automáticamente si hay registros pendientes
       if (count > 0) {
         setShowSyncPanel(true);
@@ -173,11 +174,19 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
     setFechaEntrega(currentDate);
   };
 
-  // Manejar el cambio de responsable y actualizar el área
-  const handleResponsableChange = (itemValue, itemIndex) => {
-    setResponsable(itemValue);
-    // Establecemos área asignada como cadena vacía
-    setAreaAsignada('Sin asignar');
+  // Manejar empleado nuevo seleccionado
+  const handleNewEmployee = (newEmployee) => {
+    setEmpleadoNuevo(newEmployee);
+    setTipoEmpleado('nuevo');
+    setEmpleadoSeleccionado(null); // Limpiar empleado existente
+    console.log('Empleado nuevo agregado:', newEmployee);
+  };
+
+  // Manejar empleado existente seleccionado
+  const handleEmployeeChange = (employeeValue) => {
+    setEmpleadoSeleccionado(employeeValue);
+    setTipoEmpleado('existente');
+    setEmpleadoNuevo(null); // Limpiar empleado nuevo
   };
 
   // Validar el formulario
@@ -189,32 +198,32 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
       formErrors.bienInformatico = "Este campo es obligatorio";
       isValid = false;
     }
-    
+
     if (!modelo) {
       formErrors.modelo = "Este campo es obligatorio";
       isValid = false;
     }
-    
+
     if (!numeroSerie) {
       formErrors.numeroSerie = "Este campo es obligatorio";
       isValid = false;
     }
-    
+
     if (!numeroInventario) {
       formErrors.numeroInventario = "Este campo es obligatorio";
       isValid = false;
     }
-    
-    if (!empleadoSeleccionado) {
-      formErrors.empleado = "Este campo es obligatorio";
+
+    if (!empleadoSeleccionado && !empleadoNuevo) {
+      formErrors.empleado = "Debe seleccionar un empleado o agregar uno nuevo";
       isValid = false;
     }
-    
+
     if (!ubicacion) {
       formErrors.ubicacion = "Este campo es obligatorio";
       isValid = false;
     }
-    
+
     if (!estatus) {
       formErrors.estatus = "Este campo es obligatorio";
       isValid = false;
@@ -224,6 +233,12 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
       formErrors.areaAsignada = "Este campo es obligatorio";
       isValid = false;
     }
+
+    if (!marca) {
+      formErrors.marca = "Este campo es obligatorio";
+      isValid = false;
+    }
+
 
     setErrors(formErrors);
     return isValid;
@@ -243,6 +258,9 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
     setEstatus('');
     setFechaCaptura(new Date());
     setErrors({});
+    setEmpleadoNuevo(null);
+    setTipoEmpleado('existente');
+    setMarca('');
   };
 
   // Guardar localmente
@@ -254,18 +272,18 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
         datos.usuario_nombre = userData.nombre;
         datos.territorial = userData.territorial;
       }
-      
+
       const guardado = await guardarRegistroPendiente(datos);
       if (guardado) {
         Alert.alert(
           "Guardado localmente",
           "El registro se ha guardado en tu dispositivo y se sincronizará cuando haya conexión a internet.",
-          [{ 
-            text: "OK", 
+          [{
+            text: "OK",
             onPress: () => {
               resetForm();
               actualizarContadorPendientes();
-            } 
+            }
           }]
         );
         return true;
@@ -299,13 +317,13 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
       );
       return;
     }
-    
+
     setLoading(true);
-    
+
     // Preparar los datos del formulario en el formato requerido por la API
     const formData = {
       bien_informatico: bienInformatico,
-      modelo,
+      modelo: modelo.trim() && marca.trim() ? `${modelo.trim()}|:|${marca.trim()}` : modelo.trim() || marca.trim(),
       numero_serie: numeroSerie,
       numero_inventario: numeroInventario,
       fecha_entrega: fechaEntrega.toISOString().split('T')[0],
@@ -315,12 +333,25 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
       estatus,
       fecha_captura: fechaCaptura.toISOString().split('T')[0],
     };
-    
+
+    // Manejar empleado según el tipo
+    if (tipoEmpleado === 'nuevo' && empleadoNuevo) {
+      // Para empleados nuevos, usar contrato_adquisicion como campo auxiliar
+      formData.contrato_adquisicion = empleadoNuevo.nombre;
+      formData.empleado_seleccionado = null;
+      console.log('Usando empleado nuevo en contrato_adquisicion:', empleadoNuevo.nombre);
+    } else if (tipoEmpleado === 'existente' && empleadoSeleccionado) {
+      // Para empleados existentes, usar empleado_seleccionado
+      formData.empleado_seleccionado = empleadoSeleccionado;
+      formData.contrato_adquisicion = 'sin contrato de adquisición';
+      console.log('Usando empleado existente:', empleadoSeleccionado);
+    }
+
     try {
       // Verificar el estado actual de la conexión (realizar comprobación real)
       const estaConectado = await checkConnection();
       setIsOnline(estaConectado);
-      
+
       // Si estamos en línea, intentamos enviar al servidor
       if (estaConectado) {
         try {
@@ -330,35 +361,35 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
             formData.usuario_nombre = userData.nombre;
             formData.territorial = userData.territorial;
           }
-          
+
           // Usar el servicio API para registrar el equipo
           const resultado = await registrarEquipo(formData);
-          
+
           if (resultado && resultado.success) {
             Alert.alert(
               "Éxito",
               "El equipo ha sido registrado correctamente",
               [
-                { 
-                  text: "OK", 
+                {
+                  text: "OK",
                   onPress: () => {
                     // Resetear el formulario
                     resetForm();
-                  } 
+                  }
                 }
               ]
             );
             setLoading(false);
             return;
           }
-          
+
           // Si llegamos aquí, hubo un error en la respuesta
           throw new Error(resultado?.error || "Error desconocido");
         } catch (error) {
           console.error("Error al registrar en el servidor:", error);
           // Si falla el envío al servidor, guardamos localmente
           const mensajeError = error.message || "Error al conectar con el servidor";
-          
+
           Alert.alert(
             "Error en el servidor",
             `${mensajeError}. ¿Desea guardar el registro localmente?`,
@@ -394,13 +425,13 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
       setLoading(false);
     }
   };
-  
+
   // Función para sincronizar registros pendientes
   const sincronizarRegistrosPendientes = async () => {
     // Verificamos el estado actual de la conexión
     const estaConectado = await checkConnection();
     setIsOnline(estaConectado);
-    
+
     if (!estaConectado) {
       Alert.alert(
         "Sin conexión",
@@ -409,7 +440,7 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
       );
       return;
     }
-    
+
     if (pendingCount === 0) {
       Alert.alert(
         "Sin registros pendientes",
@@ -418,24 +449,24 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
       );
       return;
     }
-    
+
     setIsSyncing(true);
-    
+
     try {
       // Obtener todos los registros pendientes
       const registrosPendientes = await obtenerRegistrosPendientes();
-      
+
       // Usar la función mejorada de sincronización
       const resultado = await sincronizarRegistros(registrosPendientes);
-      
+
       // Eliminar registros sincronizados exitosamente
       if (resultado.success && resultado.idsEliminados && resultado.idsEliminados.length > 0) {
         await eliminarRegistrosPendientes(resultado.idsEliminados);
       }
-      
+
       // Actualizar contador de pendientes
       await actualizarContadorPendientes();
-      
+
       // Mostrar resultado de la sincronización
       if (resultado.success) {
         Alert.alert(
@@ -461,12 +492,12 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
       setIsSyncing(false);
     }
   };
-  
+
   // Función para ver registros pendientes
   const verRegistrosPendientes = async () => {
     try {
       const registrosPendientes = await obtenerRegistrosPendientes();
-      
+
       if (registrosPendientes.length === 0) {
         Alert.alert(
           "Sin registros pendientes",
@@ -475,24 +506,24 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
         );
         return;
       }
-      
+
       // Creamos un texto informativo con los registros pendientes
       const infoRegistros = registrosPendientes.map((reg, index) => {
         return `${index + 1}. ${reg.bien_informatico} - ${reg.modelo}
    Serie: ${reg.numero_serie}
-   Resp: ${reg.responsable}
+   Resp: ${reg.responsable || reg.contrato_adquisicion || 'N/A'}
    Fecha: ${new Date(reg.createdAt).toLocaleString()}
    ID: ${reg.tempId}`;
       }).join('\n\n');
-      
+
       Alert.alert(
         `Registros Pendientes (${registrosPendientes.length})`,
         infoRegistros,
         [
           { text: "Cancelar" },
-          { 
-            text: "Sincronizar Ahora", 
-            onPress: sincronizarRegistrosPendientes 
+          {
+            text: "Sincronizar Ahora",
+            onPress: sincronizarRegistrosPendientes
           }
         ]
       );
@@ -535,7 +566,7 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
               {fechaEntrega.toLocaleDateString()}
             </Text>
           </TouchableOpacity>
-          
+
           {showDatePicker && DateTimePicker && (
             <DateTimePicker
               value={fechaEntrega}
@@ -552,16 +583,16 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
   // Función para forzar la reparación de duplicados
   const forzarReparacionDuplicados = async () => {
     setLoading(true);
-    
+
     try {
       const resultado = await repararDuplicadosPendientes();
-      
+
       await actualizarContadorPendientes();
-      
+
       Alert.alert(
         "Reparación completada",
-        resultado.eliminados > 0 
-          ? `Se eliminaron ${resultado.eliminados} registros duplicados.` 
+        resultado.eliminados > 0
+          ? `Se eliminaron ${resultado.eliminados} registros duplicados.`
           : "No se encontraron registros duplicados.",
         [{ text: "OK" }]
       );
@@ -580,7 +611,7 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
   // Renderizar el Panel de Sincronización
   const renderSyncPanel = () => {
     if (!showSyncPanel || pendingCount === 0) return null;
-    
+
     return (
       <Card style={styles.syncCard}>
         <View style={styles.syncHeader}>
@@ -588,8 +619,8 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
             <Badge style={styles.syncBadge} size={24}>{pendingCount}</Badge>
             <Text style={styles.syncTitle}>Registros Pendientes</Text>
           </View>
-          <TouchableOpacity 
-            style={styles.syncCloseButton} 
+          <TouchableOpacity
+            style={styles.syncCloseButton}
             onPress={() => setShowSyncPanel(false)}
           >
             <Text style={styles.syncCloseButtonText}>✕</Text>
@@ -600,16 +631,16 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
             Tienes {pendingCount} registro{pendingCount !== 1 ? 's' : ''} pendiente{pendingCount !== 1 ? 's' : ''} de sincronización.
           </Text>
           <View style={styles.syncButtonsContainer}>
-            <Button 
-              mode="outlined" 
+            <Button
+              mode="outlined"
               onPress={verRegistrosPendientes}
               style={styles.syncSecondaryButton}
               labelStyle={styles.syncSecondaryButtonLabel}
             >
               Ver Detalles
             </Button>
-            <Button 
-              mode="contained" 
+            <Button
+              mode="contained"
               onPress={sincronizarRegistrosPendientes}
               style={styles.syncButton}
               labelStyle={styles.syncButtonLabel}
@@ -618,10 +649,10 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
               {isSyncing ? "Sincronizando..." : "Sincronizar Ahora"}
             </Button>
           </View>
-          
+
           {/* Botón adicional para reparar duplicados manualmente si es necesario */}
-          <Button 
-            mode="text" 
+          <Button
+            mode="text"
             onPress={forzarReparacionDuplicados}
             style={styles.repairButton}
             labelStyle={styles.repairButtonLabel}
@@ -672,7 +703,7 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
               )}
             </View>
           )}
-          
+
           {/* Indicador del estado de conexión */}
           <View style={styles.connectionBar}>
             <View style={[styles.connectionIndicator, isOnline ? styles.onlineIndicator : styles.offlineIndicator]} />
@@ -687,17 +718,17 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
               </View>
             )}
           </View>
-          
+
           {/* Panel de sincronización */}
           {renderSyncPanel()}
-          
+
           <Card style={styles.card}>
             <Card.Content>
               <Text style={styles.title}>Registro de Inventario de Bienes Informáticos</Text>
-              
+
               {/* Sección: Información del Equipo */}
               <Text style={styles.sectionTitle}>Información del Equipo</Text>
-              
+
               <View style={styles.pickerContainer}>
                 <Text style={styles.label}>Bien Informático:</Text>
                 <SearchableDropdown
@@ -710,7 +741,7 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
                 />
                 {errors.bienInformatico && <Text style={styles.errorText}>{errors.bienInformatico}</Text>}
               </View>
-              
+
               <TextInput
                 label="Modelo"
                 value={modelo}
@@ -722,7 +753,20 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
                 error={errors.modelo ? true : false}
               />
               {errors.modelo && <Text style={styles.errorText}>{errors.modelo}</Text>}
-              
+
+              <TextInput
+                label="Marca"
+                value={marca}
+                onChangeText={setMarca}
+                style={styles.input}
+                mode="outlined"
+                outlineColor={errors.marca ? '#FF0000' : styles.outlineColor?.color}
+                activeOutlineColor={styles.activeOutlineColor?.color}
+                error={errors.marca ? true : false}
+                autoCapitalize="characters"
+              />
+              {errors.marca && <Text style={styles.errorText}>{errors.marca}</Text>}
+
               <TextInput
                 label="Número de Serie"
                 value={numeroSerie}
@@ -734,7 +778,7 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
                 error={errors.numeroSerie ? true : false}
               />
               {errors.numeroSerie && <Text style={styles.errorText}>{errors.numeroSerie}</Text>}
-              
+
               <TextInput
                 label="Número de Inventario"
                 value={numeroInventario}
@@ -747,24 +791,51 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
                 maxLength={16}
               />
               {errors.numeroInventario && <Text style={styles.errorText}>{errors.numeroInventario}</Text>}
-                           
+
               <Divider style={styles.divider} />
-              
+
               {/* Sección: Asignación y Ubicación */}
               <Text style={styles.sectionTitle}>Asignación y Ubicación</Text>
-              
+
               <Text style={styles.label}>Fecha de Entrega:</Text>
               {renderDatePicker()}
-                            
+
               <View style={styles.pickerContainer}>
                 <Text style={styles.label}>Empleado:</Text>
                 <EmployeeSearchableDropdown
-                  selectedValue={empleadoSeleccionado}
-                  onValueChange={(no_emp) => setEmpleadoSeleccionado(no_emp)}
+                  selectedValue={tipoEmpleado === 'existente' ? empleadoSeleccionado : empleadoNuevo?.value}
+                  onValueChange={handleEmployeeChange}
+                  onNewEmployee={handleNewEmployee}
                   placeholder="SELECCIONE EMPLEADO"
                   style={styles.searchableDropdown}
                   error={errors.empleado ? true : false}
                 />
+
+                {/* Mostrar información del empleado seleccionado */}
+                {empleadoNuevo && tipoEmpleado === 'nuevo' && (
+                  <View style={{
+                    backgroundColor: 'rgba(188, 149, 92, 0.1)',
+                    padding: 12,
+                    borderRadius: 8,
+                    marginTop: 8,
+                    borderLeftWidth: 3,
+                    borderLeftColor: '#BC955C',
+                  }}>
+                    <Text style={{
+                      fontSize: 12,
+                      fontWeight: 'bold',
+                      color: '#BC955C',
+                      marginBottom: 4,
+                    }}>Empleado nuevo:</Text>
+                    <Text style={{
+                      fontSize: 14,
+                      color: '#333',
+                      fontStyle: 'italic',
+                    }}>
+                      + {empleadoNuevo.nombre} (Se guardará temporalmente)
+                    </Text>
+                  </View>
+                )}
                 {errors.empleado && <Text style={styles.errorText}>{errors.empleado}</Text>}
               </View>
 
@@ -779,7 +850,7 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
                 />
                 {errors.areaAsignada && <Text style={styles.errorText}>{errors.areaAsignada}</Text>}
               </View>
-              
+
               <TextInput
                 label="Ubicación"
                 value={ubicacion}
@@ -791,12 +862,12 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
                 error={errors.ubicacion ? true : false}
               />
               {errors.ubicacion && <Text style={styles.errorText}>{errors.ubicacion}</Text>}
-              
+
               <Divider style={styles.divider} />
-              
+
               {/* Sección: Estado */}
               <Text style={styles.sectionTitle}>Estado del Equipo</Text>
-              
+
               <View style={styles.pickerContainer}>
                 <Text style={styles.label}>Estado del Equipo:</Text>
                 <Picker
@@ -810,12 +881,12 @@ const RegistroBienesScreen = ({ navigation, userData, onLogout }) => {
                 </Picker>
                 {errors.estatus && <Text style={styles.errorText}>{errors.estatus}</Text>}
               </View>
-              
+
               <Text style={styles.label}>Fecha de Captura:</Text>
               <Text style={styles.dateText}>
                 {fechaCaptura.toLocaleDateString()}
               </Text>
-              
+
               <Button
                 mode="contained"
                 onPress={handleSubmit}
