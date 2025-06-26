@@ -195,20 +195,6 @@ const AddEmployeeModal = ({
                 {nombreEmpleado.length}/100 caracteres
               </Text>
             </View>
-
-            {/* Vista previa */}
-            {nombreEmpleado.trim() && !errors.nombre && (
-              <View style={styles.previewContainer}>
-                <Text style={styles.previewLabel}>Vista previa:</Text>
-                <View style={styles.previewEmployee}>
-                  <MaterialIcons name="person-add" size={20} color="#BC955C" />
-                  <Text style={styles.previewText}>
-                    {nombreEmpleado.trim().toUpperCase()} (Agregado manualmente)
-                  </Text>
-                </View>
-              </View>
-            )}
-
           </View>
 
           {/* Botones de acción */}
@@ -302,34 +288,6 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'right',
     marginTop: 5,
-  },
-  previewContainer: {
-    backgroundColor: '#f8f9fa',
-    padding: 15,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-  },
-  previewLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-  },
-  previewEmployee: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#BC955C',
-  },
-  previewText: {
-    fontSize: 14,
-    color: '#333',
-    marginLeft: 8,
-    flex: 1,
   },
   buttonsContainer: {
     flexDirection: 'row',

@@ -216,33 +216,58 @@ export const sincronizarRegistros = async (pendientes) => {
           modelo: registro.modelo, // Ya viene concatenado desde el componente
           numero_serie: registro.numero_serie,
           numero_inventario: registro.numero_inventario,
-          contrato_adquisicion: registro.contrato_adquisicion || '',
           fecha_entrega: registro.fecha_entrega,
-          responsable: registro.empleado_seleccionado,
           ubicacion: registro.ubicacion,
           area_asignada: registro.area_asignada || 'Sin asignar',
           estatus: registro.estatus || 'activo',
           fecha_captura: registro.fecha_captura
         };
 
-        // Intentar registrar el equipo
-        const resultado = await registrarEquipo(datosFormateados);
-
-        if (resultado.success) {
-          console.log(`Registro ${registro.tempId} sincronizado exitosamente`);
-          sincronizados++;
-          idsAEliminar.push(registro.tempId);
-          procesados.add(registro.tempId); // Marcar como procesado
+        // ✅ APLICAR LA MISMA LÓGICA QUE EN registrarEquipo
+        if (registro.contrato_adquisicion && registro.contrato_adquisicion !== 'sin contrato de adquisición') {
+          datosFormateados.contrato_adquisicion = registro.contrato_adquisicion;
+          datosFormateados.responsable = 'EMPLEADO_NUEVO';
+          console.log('Sincronización: Usando empleado nuevo:', registro.contrato_adquisicion);
         } else {
-          console.error(`Error sincronizando registro ${registro.tempId}:`, resultado.error);
-          fallidos++;
+          datosFormateados.responsable = registro.empleado_seleccionado || registro.responsable;
+          datosFormateados.contrato_adquisicion = 'sin contrato de adquisición';
+          console.log('Sincronización: Usando empleado existente:', registro.empleado_seleccionado || registro.responsable);
         }
+
+        console.log('Datos formateados para sincronización:', datosFormateados);
+
+        // Usar directamente axios en lugar de llamar a registrarEquipo para evitar duplicar lógica
+        const response = await axios.post(
+          `${API_URL}/inventariocomputo/Create`,
+          datosFormateados,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            }
+          }
+        );
+
+        console.log(`Registro ${registro.tempId} sincronizado exitosamente:`, response.data);
+        sincronizados++;
+        idsAEliminar.push(registro.tempId);
+        procesados.add(registro.tempId); // Marcar como procesado
 
         // Pequeña pausa entre solicitudes para evitar sobrecargar el servidor
         await new Promise(resolve => setTimeout(resolve, 300));
 
       } catch (error) {
-        console.error(`Error inesperado sincronizando registro ${registro.tempId}:`, error);
+        console.error(`Error sincronizando registro ${registro.tempId}:`, error);
+
+        // Manejar el error de la misma forma que en handleError
+        if (error.response) {
+          console.log(`Error ${error.response.status} en registro ${registro.tempId}:`, error.response.data);
+        } else if (error.request) {
+          console.log(`Sin respuesta del servidor para registro ${registro.tempId}`);
+        } else {
+          console.log(`Error desconocido en registro ${registro.tempId}:`, error.message);
+        }
+
         fallidos++;
       }
     }

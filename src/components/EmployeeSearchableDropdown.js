@@ -436,14 +436,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '80%',
-    minHeight: '40%',
+    maxHeight: '95%', // Aumentado de 80% a 95%
+    minHeight: '70%', // Aumentado de 40% a 70%
+    flex: 1, // Agregado para usar todo el espacio disponible
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    paddingVertical: 8, // Reducido de 10 a 8
+    paddingHorizontal: 4, // Agregado padding horizontal
   },
   modalTitle: {
     fontSize: 18,
@@ -453,10 +455,10 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
+    padding: 8, // Reducido de 10 a 8
     backgroundColor: '#f5f5f5',
     borderRadius: 8,
-    margin: 10,
+    margin: 8, // Reducido de 10 a 8
   },
   searchIcon: {
     marginRight: 8,
@@ -473,7 +475,8 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   listContainer: {
-    flex: 1,
+    flex: 1, // Esto es clave para que ocupe todo el espacio disponible
+    paddingBottom: 10, // Padding inferior agregado
   },
   itemContainer: {
     flexDirection: 'row',

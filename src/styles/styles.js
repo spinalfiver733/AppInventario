@@ -12,10 +12,12 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     padding: 16,
+    paddingBottom: 50, // ← AGREGADO: Padding inferior para evitar corte
   },
   card: {
     borderRadius: 15,
     marginVertical: 20,
+    marginBottom: 30, // ← AGREGADO: Más margen inferior
     elevation: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
   },
@@ -93,6 +95,7 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: '#9F2241',
     marginTop: 20,
+    marginBottom: 20, // ← AGREGADO: Margen inferior al botón
     paddingVertical: 8,
   },
   buttonLabel: {

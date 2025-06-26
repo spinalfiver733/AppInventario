@@ -12,6 +12,10 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "assetBundlePatterns": [
+      "**/*",
+      "assets/database/*"
+    ],
     "ios": {
       "supportsTablet": true
     },
@@ -25,7 +29,9 @@
         "usesCleartextTraffic": true
       },
       "permissions": [
-        "INTERNET"
+        "INTERNET",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -47,8 +53,17 @@
           }
         }
       ],
-      "expo-sqlite",
-      "expo-asset"
+      [
+        "expo-sqlite",
+        {
+          "enableWebSupport": false
+        }
+      ],
+      "expo-asset",
+      [
+        "expo-file-system",
+        {}
+      ]
     ]
   }
 }
